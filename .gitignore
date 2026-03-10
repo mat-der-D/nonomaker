@@ -1,0 +1,22 @@
+# Generated build artifacts
+/target/
+
+# Cargo lock file (keep for binaries, ignore for libraries)
+# This is a binary crate (nonomaker-cli), so Cargo.lock is kept.
+# Uncomment the next line if this becomes a pure library project.
+# Cargo.lock
+
+# Editor and IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS-generated files
+.DS_Store
+Thumbs.db
+
+# Environment and secrets
+.env
+.env.*
