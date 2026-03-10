@@ -1,52 +1,157 @@
+use crate::types::Cell;
+
 use super::bits::LineBits;
 
-pub(crate) fn dp_solve(line: &LineBits, blocks: &[usize]) -> Option<Vec<usize>> {
-    let n = line.len();
-    let k = blocks.len();
+pub(crate) fn dp_solve(line: &mut LineBits, blocks: &[usize]) -> Option<Vec<usize>> {
+    let (filled, blank) = DPSolver::solve(line, blocks)?;
+    line.set_cells(&filled, Cell::Filled);
+    line.set_cells(&blank, Cell::Blank);
+    let mut changed = filled;
+    changed.extend(blank);
+    Some(changed)
+}
 
-    let fwd = dp_solve_forward();
-    if !fwd.value(n, k) {
-        return None;
+#[derive(Debug)]
+struct DPSolver<'a> {
+    line: &'a LineBits,
+    blocks: &'a [usize],
+    fwd: DPArray,
+    bwd: DPArray,
+}
+
+impl<'a> DPSolver<'a> {
+    fn n(&self) -> usize {
+        self.line.len()
     }
-    let bwd = dp_solve_backward();
 
-    let mut changed = Vec::new();
-    for (i, cell) in line.cells().enumerate() {
-        //
+    fn k(&self) -> usize {
+        self.blocks.len()
     }
 
-    todo!()
-}
+    fn solve(line: &'a LineBits, blocks: &'a [usize]) -> Option<(Vec<usize>, Vec<usize>)> {
+        let mut solver = Self {
+            line,
+            blocks,
+            fwd: DPArray::new(line.len() + 1, blocks.len() + 1),
+            bwd: DPArray::new(line.len() + 1, blocks.len() + 1),
+        };
+        solver.build_forward();
+        if !solver.fwd.value(solver.n(), solver.k()) {
+            return None;
+        }
+        solver.build_backward();
+        solver.collect_changes()
+    }
 
-fn dp_solve_forward() -> DPArray {
-    todo!()
-}
-
-fn dp_solve_backward() -> DPArray {
-    todo!()
-}
-
-fn can_be_filled(i: usize, fwd: &DPArray, bwd: &DPArray, blocks: &[usize]) -> bool {
-    for (j, &block) in blocks.iter().enumerate() {
-        let s_min = (i + 1).saturating_sub(block);
-        let s_max = i;
-
-        for s in s_min..=s_max {
-            // todo!(); // ここで範囲内チェック
-
-            if !can_place_forward(s, j, block) {
-                continue;
+    fn build_forward(&mut self) {
+        self.fwd.set_value(0, 0, true);
+        for i in 0..self.n() {
+            for j in 0..=self.k() {
+                self.forward_transition(i, j);
             }
-
-            let next = if s + block == n { n } else { s + block + 1 };
-            //
         }
     }
-    false
-}
 
-fn can_be_blank(i: usize, fwd: &DPArray, bwd: &DPArray, blocks: &[usize]) -> bool {
-    (0..blocks.len()).any(|j| fwd.value(i, j) && bwd.value(i + 1, j))
+    fn forward_transition(&mut self, i: usize, j: usize) {
+        if !self.fwd.value(i, j) {
+            return;
+        }
+        // Blank 遷移
+        if self.line.cell(i) != Cell::Filled {
+            self.fwd.set_value(i + 1, j, true);
+        }
+        // ブロック配置遷移
+        if let Some(&len) = self.blocks.get(j) {
+            if self.line.can_place_block(i, len) {
+                let next = self.next_after_block(i, len);
+                self.fwd.set_value(next, j + 1, true);
+            }
+        }
+    }
+
+    fn build_backward(&mut self) {
+        self.bwd.set_value(self.n(), self.k(), true);
+        for i in (0..self.n()).rev() {
+            for j in 0..=self.k() {
+                self.backward_transition(i, j);
+            }
+        }
+    }
+
+    fn backward_transition(&mut self, i: usize, j: usize) {
+        // Blank 遷移
+        if self.bwd.value(i + 1, j) && self.line.cell(i) != Cell::Filled {
+            self.bwd.set_value(i, j, true);
+        }
+        // ブロック配置遷移
+        if let Some(&len) = self.blocks.get(j) {
+            if self.line.can_place_block(i, len) {
+                let next = self.next_after_block(i, len);
+                if self.bwd.value(next, j + 1) {
+                    self.bwd.set_value(i, j, true);
+                }
+            }
+        }
+    }
+
+    /// Filled 確定と Blank 確定のインデックスを返す。矛盾なら None。
+    fn collect_changes(&self) -> Option<(Vec<usize>, Vec<usize>)> {
+        let mut filled = Vec::new();
+        let mut blank = Vec::new();
+        for i in 0..self.n() {
+            if self.line.cell(i) != Cell::Unknown {
+                continue;
+            }
+            match self.resolve_cell(i)? {
+                Cell::Filled => filled.push(i),
+                Cell::Blank => blank.push(i),
+                Cell::Unknown => {}
+            }
+        }
+        Some((filled, blank))
+    }
+
+    /// DP の結果からセル i の状態を判定する。矛盾なら None。
+    fn resolve_cell(&self, i: usize) -> Option<Cell> {
+        match (self.can_be_filled(i), self.can_be_blank(i)) {
+            (true, true) => Some(Cell::Unknown),
+            (true, false) => Some(Cell::Filled),
+            (false, true) => Some(Cell::Blank),
+            (false, false) => None,
+        }
+    }
+
+    // --- Helper ---
+
+    /// ブロック配置後の次の遷移先インデックス
+    fn next_after_block(&self, s: usize, len: usize) -> usize {
+        let end = s + len;
+        if end == self.n() { end } else { end + 1 }
+    }
+
+    /// セル i が Filled になりうるか（いずれかのブロック配置経路が存在する）
+    fn can_be_filled(&self, i: usize) -> bool {
+        for (j, &len) in self.blocks.iter().enumerate() {
+            let s_min = (i + 1).saturating_sub(len);
+            let s_max = i;
+
+            for s in s_min..=s_max {
+                if !self.line.can_place_block(s, self.blocks[j]) {
+                    continue;
+                }
+                let next = self.next_after_block(s, len);
+                if self.fwd.value(s, j) && self.bwd.value(next, j + 1) {
+                    return true;
+                }
+            }
+        }
+        false
+    }
+
+    /// セル i が Blank になりうるか（Blank として通過する経路が存在する）
+    fn can_be_blank(&self, i: usize) -> bool {
+        (0..=self.k()).any(|j| self.fwd.value(i, j) && self.bwd.value(i + 1, j))
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -67,12 +172,18 @@ impl DPArray {
 
     fn raw_index(&self, i1: usize, i2: usize) -> usize {
         if i1 >= self.size1 {
-            panic!() // TODO: 適切なメッセージを設定する
+            panic!(
+                "DPArray index out of bounds: i1={i1} >= size1={}",
+                self.size1
+            );
         }
         if i2 >= self.size2 {
-            panic!() // TODO: 適切なメッセージを設定する
+            panic!(
+                "DPArray index out of bounds: i2={i2} >= size2={}",
+                self.size2
+            );
         }
-        i1 * self.size1 + i2
+        i1 * self.size2 + i2
     }
 
     fn value(&self, i1: usize, i2: usize) -> bool {

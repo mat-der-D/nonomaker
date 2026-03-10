@@ -19,6 +19,10 @@ pub(crate) fn check_filled_count(line: &LineBits, blocks: &[usize]) -> bool {
     (n_filled <= req_filled) && (n_filled + n_unknown >= req_filled)
 }
 
+pub(crate) fn check_no_dead_cells(line: &LineBits) -> bool {
+    !line.has_contradiction()
+}
+
 pub(crate) fn check_consecutive_overflow(line: &LineBits, blocks: &[usize]) -> bool {
     let Some(&max_block) = blocks.iter().max() else {
         // blocks が空のケースは check_filled_count と重複するので pass
