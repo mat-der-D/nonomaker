@@ -3,6 +3,7 @@ use crate::{
     types::{Grid, Puzzle},
 };
 
+mod backtracking;
 mod line_solver;
 mod propagation;
 
@@ -31,5 +32,17 @@ impl PartialSolver for PropagationSolver {
         let mut grid = Grid::new(puzzle.width(), puzzle.height());
         let valid = propagate(&mut grid, puzzle);
         if valid { Some(grid) } else { None }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct BacktrackingSolver;
+
+impl CompleteSolver for BacktrackingSolver {
+    fn solve_complete(&self, puzzle: &Puzzle) -> Solution {
+        let Some(grid) = PropagationSolver.solve_partial(puzzle) else {
+            return Solution::None;
+        };
+        backtracking::solve(grid, puzzle)
     }
 }
