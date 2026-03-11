@@ -1,13 +1,17 @@
 use super::{Solution, propagation::propagate};
 use crate::types::{Cell, Grid, Puzzle};
 
-pub(super) fn solve(grid: Grid, puzzle: &Puzzle) -> Solution {
+pub(super) fn solve(grid: Grid, puzzle: &Puzzle, max_sol: usize) -> Solution {
     let mut solutions = Vec::new();
-    search(grid, puzzle, &mut solutions);
+    search(grid, puzzle, &mut solutions, max_sol);
     into_solution(solutions)
 }
 
-fn search(grid: Grid, puzzle: &Puzzle, solutions: &mut Vec<Grid>) {
+fn search(grid: Grid, puzzle: &Puzzle, solutions: &mut Vec<Grid>, max_sol: usize) {
+    if solutions.len() == max_sol {
+        return;
+    }
+
     let Some((row, col)) = find_unknown(&grid) else {
         solutions.push(grid);
         return;
@@ -16,13 +20,13 @@ fn search(grid: Grid, puzzle: &Puzzle, solutions: &mut Vec<Grid>) {
     let mut filled = grid.clone();
     *filled.cell_mut(row, col) = Cell::Filled;
     if propagate(&mut filled, puzzle) {
-        search(filled, puzzle, solutions);
+        search(filled, puzzle, solutions, max_sol);
     }
 
     let mut blank = grid;
     *blank.cell_mut(row, col) = Cell::Blank;
     if propagate(&mut blank, puzzle) {
-        search(blank, puzzle, solutions);
+        search(blank, puzzle, solutions, max_sol);
     }
 }
 

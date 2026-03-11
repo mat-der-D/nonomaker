@@ -32,7 +32,8 @@ pub fn run(args: SolveArgs) -> Result<(), CliError> {
     let puzzle = puzzle_from_json(&input)?;
     let json = match args.solver {
         Solver::Backtracking => {
-            let solution = BacktrackingSolver.solve_complete(&puzzle);
+            let solver = BacktrackingSolver::new(2);
+            let solution = solver.solve_complete(&puzzle);
             solution_to_json(&solution)?
         }
         Solver::Linear => match PropagationSolver.solve_partial(&puzzle) {

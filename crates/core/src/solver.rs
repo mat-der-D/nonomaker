@@ -36,13 +36,21 @@ impl PartialSolver for PropagationSolver {
 }
 
 #[derive(Debug, Clone)]
-pub struct BacktrackingSolver;
+pub struct BacktrackingSolver {
+    max_sol: usize,
+}
+
+impl BacktrackingSolver {
+    pub fn new(max_sol: usize) -> Self {
+        Self { max_sol }
+    }
+}
 
 impl CompleteSolver for BacktrackingSolver {
     fn solve_complete(&self, puzzle: &Puzzle) -> Solution {
         let Some(grid) = PropagationSolver.solve_partial(puzzle) else {
             return Solution::None;
         };
-        backtracking::solve(grid, puzzle)
+        backtracking::solve(grid, puzzle, self.max_sol)
     }
 }
