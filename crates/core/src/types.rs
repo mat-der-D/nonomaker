@@ -8,6 +8,7 @@ pub enum Cell {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Grid {
     width: usize,
+    height: usize,
     cells: Vec<Cell>,
 }
 
@@ -15,6 +16,7 @@ impl Grid {
     pub fn new(width: usize, height: usize) -> Self {
         Self {
             width,
+            height,
             cells: vec![Cell::Unknown; width * height],
         }
     }
@@ -24,7 +26,7 @@ impl Grid {
     }
 
     pub fn height(&self) -> usize {
-        self.cells.len() / self.width
+        self.height
     }
 
     fn cell_index(&self, row: usize, col: usize) -> usize {
@@ -32,7 +34,7 @@ impl Grid {
             panic!()
         }
 
-        if row >= self.height() {
+        if row >= self.height {
             panic!()
         }
 
