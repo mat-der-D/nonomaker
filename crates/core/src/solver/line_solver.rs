@@ -14,8 +14,7 @@ use segment::segment_phase;
 
 use crate::types::Cell;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub(crate) struct Contradiction;
+use super::Contradiction;
 
 fn to_result(value: bool) -> Result<(), Contradiction> {
     if value { Ok(()) } else { Err(Contradiction) }
