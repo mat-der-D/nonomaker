@@ -25,6 +25,9 @@ pub struct SolveArgs {
     pub input: Option<PathBuf>,
     #[arg(short, long)]
     pub output: Option<PathBuf>,
+    /// Maximum number of solutions to find (0 = unlimited, default = 2)
+    #[arg(long, default_value = "2")]
+    pub max_sol: usize,
 }
 
 pub fn run(args: SolveArgs) -> Result<(), CliError> {
@@ -32,7 +35,7 @@ pub fn run(args: SolveArgs) -> Result<(), CliError> {
     let puzzle = puzzle_from_json(&input)?;
     let json = match args.solver {
         Solver::Backtracking => {
-            let solver = BacktrackingSolver::new(2);
+            let solver = BacktrackingSolver::new(args.max_sol);
             let solution = solver.solve_complete(&puzzle);
             solution_to_json(&solution)?
         }
