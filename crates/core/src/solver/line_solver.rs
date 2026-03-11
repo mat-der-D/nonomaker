@@ -14,11 +14,7 @@ use segment::segment_phase;
 
 use crate::types::Cell;
 
-use super::Contradiction;
-
-fn to_result(value: bool) -> Result<(), Contradiction> {
-    if value { Ok(()) } else { Err(Contradiction) }
-}
+pub(super) use super::Contradiction;
 
 pub(crate) fn solve_line(
     line: &mut LineBits,
@@ -26,7 +22,9 @@ pub(crate) fn solve_line(
 ) -> Result<Vec<usize>, Contradiction> {
     // 空ブロック: 全セルを Blank に確定
     if blocks.is_empty() {
-        to_result(line.count_cells(Cell::Filled) == 0)?;
+        if line.count_cells(Cell::Filled) != 0 {
+            return Err(Contradiction);
+        }
         let unknowns: Vec<usize> = (0..line.len())
             .filter(|&i| line.cell(i) == Cell::Unknown)
             .collect();
@@ -35,23 +33,23 @@ pub(crate) fn solve_line(
     }
 
     // Phase 1: 軽量矛盾チェック
-    to_result(check_min_space(line, blocks))?;
-    to_result(check_filled_count(line, blocks))?;
-    to_result(check_consecutive_overflow(line, blocks))?;
+    check_min_space(line, blocks)?;
+    check_filled_count(line, blocks)?;
+    check_consecutive_overflow(line, blocks)?;
 
     // Phase 2: Segment 分割とブロック割り当て
-    let mut changed = segment_phase(line, blocks).ok_or(Contradiction)?;
+    let mut changed = segment_phase(line, blocks)?;
 
     // Phase 3: Earliest / Latest 推論
-    changed.extend(earliest_latest_inference(line, blocks).ok_or(Contradiction)?);
+    changed.extend(earliest_latest_inference(line, blocks)?);
 
     // Phase 4: DP line solver（未解決セルが残る場合のみ実行）
     if line.count_cells(Cell::Unknown) > 0 {
-        changed.extend(dp_solve(line, blocks).ok_or(Contradiction)?);
+        changed.extend(dp_solve(line, blocks)?);
     }
 
     // Phase 5: DP 後の矛盾チェック
-    to_result(check_no_dead_cells(line))?;
+    check_no_dead_cells(line)?;
 
     Ok(changed)
 }

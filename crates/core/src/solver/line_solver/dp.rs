@@ -1,14 +1,15 @@
 use crate::types::Cell;
 
 use super::bits::LineBits;
+use super::Contradiction;
 
-pub(crate) fn dp_solve(line: &mut LineBits, blocks: &[usize]) -> Option<Vec<usize>> {
+pub(crate) fn dp_solve(line: &mut LineBits, blocks: &[usize]) -> Result<Vec<usize>, Contradiction> {
     let (filled, blank) = DPSolver::solve(line, blocks)?;
     line.set_cells(&filled, Cell::Filled);
     line.set_cells(&blank, Cell::Blank);
     let mut changed = filled;
     changed.extend(blank);
-    Some(changed)
+    Ok(changed)
 }
 
 #[derive(Debug)]
@@ -28,7 +29,10 @@ impl<'a> DPSolver<'a> {
         self.blocks.len()
     }
 
-    fn solve(line: &'a LineBits, blocks: &'a [usize]) -> Option<(Vec<usize>, Vec<usize>)> {
+    fn solve(
+        line: &'a LineBits,
+        blocks: &'a [usize],
+    ) -> Result<(Vec<usize>, Vec<usize>), Contradiction> {
         let mut solver = Self {
             line,
             blocks,
@@ -37,7 +41,7 @@ impl<'a> DPSolver<'a> {
         };
         solver.build_forward();
         if !solver.fwd.value(solver.n(), solver.k()) {
-            return None;
+            return Err(Contradiction);
         }
         solver.build_backward();
         solver.collect_changes()
@@ -94,8 +98,8 @@ impl<'a> DPSolver<'a> {
         }
     }
 
-    /// Filled 確定と Blank 確定のインデックスを返す。矛盾なら None。
-    fn collect_changes(&self) -> Option<(Vec<usize>, Vec<usize>)> {
+    /// Filled 確定と Blank 確定のインデックスを返す。矛盾なら Err。
+    fn collect_changes(&self) -> Result<(Vec<usize>, Vec<usize>), Contradiction> {
         let mut filled = Vec::new();
         let mut blank = Vec::new();
         for i in 0..self.n() {
@@ -108,16 +112,16 @@ impl<'a> DPSolver<'a> {
                 Cell::Unknown => {}
             }
         }
-        Some((filled, blank))
+        Ok((filled, blank))
     }
 
-    /// DP の結果からセル i の状態を判定する。矛盾なら None。
-    fn resolve_cell(&self, i: usize) -> Option<Cell> {
+    /// DP の結果からセル i の状態を判定する。矛盾なら Err。
+    fn resolve_cell(&self, i: usize) -> Result<Cell, Contradiction> {
         match (self.can_be_filled(i), self.can_be_blank(i)) {
-            (true, true) => Some(Cell::Unknown),
-            (true, false) => Some(Cell::Filled),
-            (false, true) => Some(Cell::Blank),
-            (false, false) => None,
+            (true, true) => Ok(Cell::Unknown),
+            (true, false) => Ok(Cell::Filled),
+            (false, true) => Ok(Cell::Blank),
+            (false, false) => Err(Contradiction),
         }
     }
 

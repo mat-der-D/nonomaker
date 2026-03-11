@@ -1,6 +1,7 @@
 use crate::types::Cell;
 
 use super::bits::LineBits;
+use super::Contradiction;
 
 #[derive(Debug, Clone)]
 pub(crate) struct Segment {
@@ -17,11 +18,11 @@ impl Segment {
 pub(crate) fn segment_phase(
     line: &mut LineBits,
     blocks: &[usize],
-) -> Option<Vec<usize>> {
+) -> Result<Vec<usize>, Contradiction> {
     let segments = split_at_blanks(line);
 
     if segments.is_empty() {
-        return if blocks.is_empty() { Some(Vec::new()) } else { None };
+        return if blocks.is_empty() { Ok(Vec::new()) } else { Err(Contradiction) };
     }
 
     let earliest_segment = compute_earliest_segment(&segments, blocks)?;
@@ -66,7 +67,10 @@ fn fits(segment: &Segment, blocks: &[usize]) -> bool {
     min_space <= segment.len()
 }
 
-fn compute_earliest_segment(segments: &[Segment], blocks: &[usize]) -> Option<Vec<usize>> {
+fn compute_earliest_segment(
+    segments: &[Segment],
+    blocks: &[usize],
+) -> Result<Vec<usize>, Contradiction> {
     let mut earliest = Vec::with_capacity(blocks.len());
     let mut slice_start = 0;
     let mut seg_idx = 0;
@@ -77,16 +81,19 @@ fn compute_earliest_segment(segments: &[Segment], blocks: &[usize]) -> Option<Ve
             slice_start = j;
 
             if seg_idx >= segments.len() {
-                return None;
+                return Err(Contradiction);
             }
         }
         earliest.push(seg_idx);
     }
 
-    Some(earliest)
+    Ok(earliest)
 }
 
-fn compute_latest_segment(segments: &[Segment], blocks: &[usize]) -> Option<Vec<usize>> {
+fn compute_latest_segment(
+    segments: &[Segment],
+    blocks: &[usize],
+) -> Result<Vec<usize>, Contradiction> {
     let k = blocks.len();
     let mut latest = vec![0; k];
     let mut slice_end = k - 1;
@@ -95,7 +102,7 @@ fn compute_latest_segment(segments: &[Segment], blocks: &[usize]) -> Option<Vec<
     for j in (0..k).rev() {
         while !fits(&segments[seg_idx], &blocks[j..=slice_end]) {
             if seg_idx == 0 {
-                return None;
+                return Err(Contradiction);
             }
             seg_idx -= 1;
             slice_end = j;
@@ -103,7 +110,7 @@ fn compute_latest_segment(segments: &[Segment], blocks: &[usize]) -> Option<Vec<
         latest[j] = seg_idx;
     }
 
-    Some(latest)
+    Ok(latest)
 }
 
 fn confirm_empty_segments(
@@ -111,7 +118,7 @@ fn confirm_empty_segments(
     segments: &[Segment],
     earliest_segment: &[usize],
     latest_segment: &[usize],
-) -> Option<Vec<usize>> {
+) -> Result<Vec<usize>, Contradiction> {
     let mut changed = Vec::new();
 
     for (seg_idx, segment) in segments.iter().enumerate() {
@@ -131,7 +138,7 @@ fn confirm_empty_segments(
             .take(segment.len())
         {
             match cell {
-                Cell::Filled => return None,
+                Cell::Filled => return Err(Contradiction),
                 Cell::Unknown => changed.push(i),
                 Cell::Blank => {}
             }
@@ -139,5 +146,5 @@ fn confirm_empty_segments(
     }
 
     line.set_cells(&changed, Cell::Blank);
-    Some(changed)
+    Ok(changed)
 }

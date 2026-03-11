@@ -1,21 +1,22 @@
 use crate::types::Cell;
 
 use super::bits::LineBits;
+use super::Contradiction;
 
 pub(crate) fn earliest_latest_inference(
     line: &mut LineBits,
     blocks: &[usize],
-) -> Option<Vec<usize>> {
+) -> Result<Vec<usize>, Contradiction> {
     let earliest = compute_earliest(line, blocks)?;
     let latest = compute_latest(line, blocks)?;
 
     let mut changed = overlap_inference(line, &earliest, &latest, blocks);
     changed.extend(white_inference(line, &earliest, &latest, blocks));
 
-    Some(changed)
+    Ok(changed)
 }
 
-fn compute_earliest(line: &LineBits, blocks: &[usize]) -> Option<Vec<usize>> {
+fn compute_earliest(line: &LineBits, blocks: &[usize]) -> Result<Vec<usize>, Contradiction> {
     let n = line.len();
     let mut earliest_start = Vec::with_capacity(blocks.len());
     let mut pos = 0;
@@ -23,13 +24,13 @@ fn compute_earliest(line: &LineBits, blocks: &[usize]) -> Option<Vec<usize>> {
     for &len in blocks {
         loop {
             if pos + len > n {
-                return None;
+                return Err(Contradiction);
             }
             if line.can_place_block(pos, len) {
                 break;
             }
             if line.cell(pos) == Cell::Filled {
-                return None;
+                return Err(Contradiction);
             }
             pos += 1;
         }
@@ -37,10 +38,10 @@ fn compute_earliest(line: &LineBits, blocks: &[usize]) -> Option<Vec<usize>> {
         pos += len + 1;
     }
 
-    Some(earliest_start)
+    Ok(earliest_start)
 }
 
-fn compute_latest(line: &LineBits, blocks: &[usize]) -> Option<Vec<usize>> {
+fn compute_latest(line: &LineBits, blocks: &[usize]) -> Result<Vec<usize>, Contradiction> {
     let k = blocks.len();
     let mut latest_start = vec![0; k];
     let mut pos = line.len();
@@ -49,7 +50,7 @@ fn compute_latest(line: &LineBits, blocks: &[usize]) -> Option<Vec<usize>> {
         let len = blocks[j];
         loop {
             if pos < len {
-                return None;
+                return Err(Contradiction);
             }
             let start = pos - len;
             if line.can_place_block(start, len) {
@@ -58,18 +59,18 @@ fn compute_latest(line: &LineBits, blocks: &[usize]) -> Option<Vec<usize>> {
             }
             pos -= 1;
             if line.cell(pos) == Cell::Filled {
-                return None;
+                return Err(Contradiction);
             }
         }
         if j > 0 {
             let Some(p) = latest_start[j].checked_sub(1) else {
-                return None;
+                return Err(Contradiction);
             };
             pos = p;
         }
     }
 
-    Some(latest_start)
+    Ok(latest_start)
 }
 
 /// 最左配置と最右配置の重なり部分を Filled に確定する
