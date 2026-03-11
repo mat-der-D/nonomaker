@@ -1,7 +1,7 @@
 use crate::types::Cell;
 
 use super::bits::LineBits;
-use super::Contradiction;
+use super::super::Contradiction;
 
 pub(crate) fn dp_solve(line: &mut LineBits, blocks: &[usize]) -> Result<Vec<usize>, Contradiction> {
     let (filled, blank) = DPSolver::solve(line, blocks)?;

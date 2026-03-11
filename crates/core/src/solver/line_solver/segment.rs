@@ -1,7 +1,7 @@
 use crate::types::Cell;
 
 use super::bits::LineBits;
-use super::Contradiction;
+use super::super::Contradiction;
 
 #[derive(Debug, Clone)]
 pub(crate) struct Segment {

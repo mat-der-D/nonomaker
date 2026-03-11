@@ -1,7 +1,7 @@
 use std::collections::VecDeque;
 
-use super::line_solver::{LineBits, solve_line};
 use super::Contradiction;
+use super::line_solver::{LineBits, solve_line};
 use crate::types::{Grid, Puzzle};
 
 #[derive(Debug, Clone, Copy)]

@@ -1,7 +1,7 @@
 use crate::types::Cell;
 
 use super::bits::LineBits;
-use super::Contradiction;
+use super::super::Contradiction;
 
 pub(crate) fn check_min_space(line: &LineBits, blocks: &[usize]) -> Result<(), Contradiction> {
     let k = blocks.len();

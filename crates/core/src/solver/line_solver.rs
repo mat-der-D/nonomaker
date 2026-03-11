@@ -14,7 +14,7 @@ use segment::segment_phase;
 
 use crate::types::Cell;
 
-pub(super) use super::Contradiction;
+use super::Contradiction;
 
 pub(crate) fn solve_line(
     line: &mut LineBits,
