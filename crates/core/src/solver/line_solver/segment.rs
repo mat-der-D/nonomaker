@@ -1,7 +1,7 @@
 use crate::types::Cell;
 
-use super::bits::LineBits;
 use super::super::Contradiction;
+use super::bits::LineBits;
 
 #[derive(Debug, Clone)]
 pub(crate) struct Segment {
@@ -22,7 +22,11 @@ pub(crate) fn segment_phase(
     let segments = split_at_blanks(line);
 
     if segments.is_empty() {
-        return if blocks.is_empty() { Ok(Vec::new()) } else { Err(Contradiction) };
+        return if blocks.is_empty() {
+            Ok(Vec::new())
+        } else {
+            Err(Contradiction)
+        };
     }
 
     let earliest_segment = compute_earliest_segment(&segments, blocks)?;

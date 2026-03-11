@@ -1,7 +1,7 @@
 use crate::types::Cell;
 
-use super::bits::LineBits;
 use super::super::Contradiction;
+use super::bits::LineBits;
 
 pub(crate) fn check_min_space(line: &LineBits, blocks: &[usize]) -> Result<(), Contradiction> {
     let k = blocks.len();
@@ -10,7 +10,11 @@ pub(crate) fn check_min_space(line: &LineBits, blocks: &[usize]) -> Result<(), C
     }
 
     let min_space = blocks.iter().sum::<usize>() + (k - 1);
-    if min_space <= line.len() { Ok(()) } else { Err(Contradiction) }
+    if min_space <= line.len() {
+        Ok(())
+    } else {
+        Err(Contradiction)
+    }
 }
 
 pub(crate) fn check_filled_count(line: &LineBits, blocks: &[usize]) -> Result<(), Contradiction> {
@@ -25,7 +29,11 @@ pub(crate) fn check_filled_count(line: &LineBits, blocks: &[usize]) -> Result<()
 }
 
 pub(crate) fn check_no_dead_cells(line: &LineBits) -> Result<(), Contradiction> {
-    if line.has_contradiction() { Err(Contradiction) } else { Ok(()) }
+    if line.has_contradiction() {
+        Err(Contradiction)
+    } else {
+        Ok(())
+    }
 }
 
 pub(crate) fn check_consecutive_overflow(
