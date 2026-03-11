@@ -1,4 +1,4 @@
-use crate::types::Cell;
+use crate::types::{Cell, Grid};
 
 const fn create_repunit(count: usize) -> u64 {
     let mut repunit = 0;
@@ -19,7 +19,15 @@ pub(crate) struct LineBits {
 }
 
 impl LineBits {
-    pub(crate) fn new(len: usize) -> Self {
+    pub(crate) fn from_grid_row(grid: &Grid, row: usize) -> Self {
+        todo!()
+    }
+
+    pub(crate) fn from_grid_col(grid: &Grid, col: usize) -> Self {
+        todo!()
+    }
+
+    fn new(len: usize) -> Self {
         let mask = create_repunit(len);
         Self {
             can_be_filled: mask,
@@ -77,6 +85,12 @@ impl LineBits {
     pub(crate) fn has_contradiction(&self) -> bool {
         let valid = self.can_be_filled | self.can_be_blank;
         (valid & self.mask) != self.mask
+    }
+
+    /// すべてのセルが確定状態かを判定する
+    pub(crate) fn is_solved(&self) -> bool {
+        let solved = self.can_be_filled ^ self.can_be_blank;
+        solved == self.mask
     }
 
     /// ブロック(長さ len)を位置 pos に配置できるか

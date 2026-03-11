@@ -43,6 +43,11 @@ impl Grid {
         let index = self.cell_index(row, col);
         &self.cells[index]
     }
+
+    pub fn cell_mut(&mut self, row: usize, col: usize) -> &mut Cell {
+        let index = self.cell_index(row, col);
+        &mut self.cells[index]
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -53,6 +58,10 @@ pub struct Clue {
 impl Clue {
     pub fn new(blocks: Vec<usize>) -> Self {
         Self { blocks }
+    }
+
+    pub fn blocks(&self) -> &[usize] {
+        &self.blocks
     }
 }
 
@@ -68,5 +77,13 @@ impl Puzzle {
             row_clues,
             col_clues,
         }
+    }
+
+    pub fn row_clues(&self) -> &[Clue] {
+        &self.row_clues
+    }
+
+    pub fn col_clues(&self) -> &[Clue] {
+        &self.col_clues
     }
 }

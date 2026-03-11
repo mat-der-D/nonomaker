@@ -4,7 +4,7 @@ mod dp;
 mod earliest_latest;
 mod segment;
 
-use bits::LineBits;
+pub(super) use bits::LineBits;
 use contradiction::{
     check_consecutive_overflow, check_filled_count, check_min_space, check_no_dead_cells,
 };
