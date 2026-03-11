@@ -86,4 +86,12 @@ impl Puzzle {
     pub fn col_clues(&self) -> &[Clue] {
         &self.col_clues
     }
+
+    pub fn width(&self) -> usize {
+        self.col_clues.len()
+    }
+
+    pub fn height(&self) -> usize {
+        self.row_clues.len()
+    }
 }
