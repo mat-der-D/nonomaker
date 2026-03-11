@@ -200,3 +200,134 @@ impl DPArray {
         self.values[index] = value;
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::types::Grid;
+
+    fn make_line(pattern: &str) -> LineBits {
+        let n = pattern.len();
+        let mut grid = Grid::new(n, 1);
+        for (i, c) in pattern.chars().enumerate() {
+            *grid.cell_mut(0, i) = match c {
+                'F' => Cell::Filled,
+                'B' => Cell::Blank,
+                _ => Cell::Unknown,
+            };
+        }
+        LineBits::from_grid_row(&grid, 0)
+    }
+
+    fn line_to_str(line: &LineBits) -> String {
+        line.cells()
+            .map(|c| match c {
+                Cell::Unknown => '?',
+                Cell::Filled => 'F',
+                Cell::Blank => 'B',
+            })
+            .collect()
+    }
+
+    // --- dp_solve の基本動作 ---
+
+    #[test]
+    fn dp_full_determination_unique_placement() {
+        // ブロック [3], 長さ 3 → 唯一の配置 → 全て Filled
+        let mut line = make_line("???");
+        dp_solve(&mut line, &[3]).unwrap();
+        assert_eq!(line_to_str(&line), "FFF");
+    }
+
+    #[test]
+    fn dp_contradiction_returns_err() {
+        // ブロック [2], 長さ 3 で cell[1] が Blank → 配置不能
+        let mut line = make_line("?B?");
+        assert!(dp_solve(&mut line, &[2]).is_err());
+    }
+
+    #[test]
+    fn dp_two_blocks_exact_fit() {
+        // ブロック [2, 2], 長さ 5 → FFBFF
+        let mut line = make_line("?????");
+        dp_solve(&mut line, &[2, 2]).unwrap();
+        assert_eq!(line_to_str(&line), "FFBFF");
+    }
+
+    #[test]
+    fn dp_preserves_already_filled_cells() {
+        // 既に Filled なセルは変更されない
+        let mut line = make_line("FFF");
+        dp_solve(&mut line, &[3]).unwrap();
+        assert_eq!(line_to_str(&line), "FFF");
+    }
+
+    // --- ギャップセルの Blank 判定 ---
+    //
+    // DP モデルでは、ブロックを位置 s に配置すると位置 s+len (< n の場合) は
+    // 強制的に Blank になる（mandatory gap）。
+    // この gap セルを「Blank になりうる」と正しく判定できるかを確認する。
+    //
+    // 例: ライン "?FFF?" ブロック [4]
+    //   - 配置 A: pos=0 → cells[0,3]=F, cell[4]=gap(Blank)
+    //   - 配置 B: pos=1 → cells[1,4]=F, cell[0]=Blank
+    //   → セル 0 と セル 4 はどちらも Unknown であるべき
+
+    #[test]
+    fn dp_gap_cell_after_block_must_be_unknown_not_forced_filled() {
+        // "?FFF?" にブロック [4]: pos=0 (セル4=gap=Blank) or pos=1 (セル4=Filled)
+        // → セル4は Unknown であるべき
+        let mut line = make_line("?FFF?");
+        dp_solve(&mut line, &[4]).unwrap();
+        assert_eq!(
+            line.cell(4),
+            Cell::Unknown,
+            "セル4は配置 pos=0 で Blank になりうるので Unknown でなければならない。\
+             Filled と判定されるなら gap セルの Blank チェックが欠落している。"
+        );
+        // 対称的にセル0も Unknown
+        assert_eq!(
+            line.cell(0),
+            Cell::Unknown,
+            "セル0は配置 pos=1 で Blank になりうるので Unknown でなければならない"
+        );
+    }
+
+    #[test]
+    fn dp_gap_cell_two_blocks() {
+        // ライン "??????" ブロック [2, 2]: 有効配置 (0,3),(0,4),(1,4)
+        // セル2は配置 (1,4) で Filled → Unknown
+        // セル3は配置 (0,3) で Filled → Unknown
+        // (white_inference なし相当の状態でテスト)
+        let mut line = make_line("??????");
+        dp_solve(&mut line, &[2, 2]).unwrap();
+        assert_eq!(
+            line.cell(2),
+            Cell::Unknown,
+            "セル2は配置によって Filled or Blank になるので Unknown"
+        );
+        assert_eq!(
+            line.cell(3),
+            Cell::Unknown,
+            "セル3は配置によって Filled or Blank になるので Unknown"
+        );
+    }
+
+    #[test]
+    fn dp_gap_cell_tight_single_block() {
+        // "????" ブロック [3]: 有効配置 pos=0 (gap@3) または pos=1 (cell0=Blank)
+        // → セル0, セル3 が Unknown
+        let mut line = make_line("????");
+        dp_solve(&mut line, &[3]).unwrap();
+        assert_eq!(
+            line.cell(0),
+            Cell::Unknown,
+            "セル0: pos=1 で Blank になりうる"
+        );
+        assert_eq!(
+            line.cell(3),
+            Cell::Unknown,
+            "セル3: pos=0 の gap で Blank になりうる"
+        );
+    }
+}

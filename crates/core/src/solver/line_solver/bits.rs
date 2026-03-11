@@ -166,3 +166,160 @@ fn cell_from_lowest_bits(pos: usize, filled: u64, blank: u64) -> Cell {
         _ => unreachable!(),
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::types::Grid;
+
+    /// パターン文字列 ('F'=Filled, 'B'=Blank, '?'=Unknown) から LineBits を生成する
+    fn make_line(pattern: &str) -> LineBits {
+        let n = pattern.len();
+        let mut grid = Grid::new(n, 1);
+        for (i, c) in pattern.chars().enumerate() {
+            *grid.cell_mut(0, i) = match c {
+                'F' => Cell::Filled,
+                'B' => Cell::Blank,
+                '?' => Cell::Unknown,
+                other => panic!("不正な文字: {other}"),
+            };
+        }
+        LineBits::from_grid_row(&grid, 0)
+    }
+
+    fn line_to_str(line: &LineBits) -> String {
+        line.cells()
+            .map(|c| match c {
+                Cell::Unknown => '?',
+                Cell::Filled => 'F',
+                Cell::Blank => 'B',
+            })
+            .collect()
+    }
+
+    // --- cell / count_cells ---
+
+    #[test]
+    fn cell_reads_correct_state() {
+        let line = make_line("F?B");
+        assert_eq!(line.cell(0), Cell::Filled);
+        assert_eq!(line.cell(1), Cell::Unknown);
+        assert_eq!(line.cell(2), Cell::Blank);
+    }
+
+    #[test]
+    fn count_cells_all_unknown() {
+        let line = make_line("???");
+        assert_eq!(line.count_cells(Cell::Unknown), 3);
+        assert_eq!(line.count_cells(Cell::Filled), 0);
+        assert_eq!(line.count_cells(Cell::Blank), 0);
+    }
+
+    #[test]
+    fn count_cells_mixed() {
+        let line = make_line("F?B");
+        assert_eq!(line.count_cells(Cell::Unknown), 1);
+        assert_eq!(line.count_cells(Cell::Filled), 1);
+        assert_eq!(line.count_cells(Cell::Blank), 1);
+    }
+
+    // --- cells() iterator ---
+
+    #[test]
+    fn cells_iterator_order() {
+        assert_eq!(line_to_str(&make_line("FB?")), "FB?");
+        assert_eq!(line_to_str(&make_line("?BF")), "?BF");
+    }
+
+    // --- is_solved / has_contradiction ---
+
+    #[test]
+    fn is_solved_when_all_determined() {
+        assert!(make_line("FFB").is_solved());
+        assert!(make_line("F").is_solved());
+        assert!(make_line("B").is_solved());
+    }
+
+    #[test]
+    fn is_not_solved_when_unknown_remains() {
+        assert!(!make_line("F?B").is_solved());
+        assert!(!make_line("???").is_solved());
+    }
+
+    #[test]
+    fn no_contradiction_in_normal_states() {
+        assert!(!make_line("???").has_contradiction());
+        assert!(!make_line("FFB").has_contradiction());
+    }
+
+    // --- set_cells ---
+
+    #[test]
+    fn set_cells_unknown_to_filled() {
+        let mut line = make_line("???");
+        line.set_cells(&[0, 2], Cell::Filled);
+        assert_eq!(line.cell(0), Cell::Filled);
+        assert_eq!(line.cell(1), Cell::Unknown);
+        assert_eq!(line.cell(2), Cell::Filled);
+    }
+
+    #[test]
+    fn set_cells_unknown_to_blank() {
+        let mut line = make_line("???");
+        line.set_cells(&[1], Cell::Blank);
+        assert_eq!(line.cell(1), Cell::Blank);
+    }
+
+    // --- can_place_block ---
+
+    #[test]
+    fn can_place_block_fits_exactly() {
+        let line = make_line("???");
+        assert!(line.can_place_block(0, 3));
+    }
+
+    #[test]
+    fn can_place_block_out_of_bounds() {
+        let line = make_line("???");
+        assert!(!line.can_place_block(2, 2)); // 2+2=4 > 3
+    }
+
+    #[test]
+    fn can_place_block_blocked_by_blank_in_range() {
+        let line = make_line("?B?");
+        assert!(!line.can_place_block(0, 2)); // cell(1)=Blank
+        assert!(!line.can_place_block(0, 3)); // cell(1)=Blank
+        assert!(line.can_place_block(2, 1)); // cell(2)=Unknown, no right neighbor
+    }
+
+    #[test]
+    fn can_place_block_blocked_by_filled_on_right() {
+        // block=[0,1] の直後に Filled があると拡張してしまうので置けない
+        let line = make_line("??F");
+        assert!(!line.can_place_block(0, 2)); // cell(2)=Filled → 不可
+        assert!(line.can_place_block(0, 3)); // cell(3) が存在しない → 可
+    }
+
+    #[test]
+    fn can_place_block_blocked_by_filled_on_left() {
+        // block=[1,2] の直前に Filled があると前のブロックと連結するので置けない
+        let line = make_line("F??");
+        assert!(!line.can_place_block(1, 2)); // cell(0)=Filled → 不可
+        assert!(line.can_place_block(0, 2)); // cell(0-1)が存在しない → 可
+    }
+
+    #[test]
+    fn can_place_block_at_end_no_right_check() {
+        // ライン末尾に置く場合は右側のチェックがない
+        let line = make_line("???");
+        assert!(line.can_place_block(1, 2)); // [1,2], 右端=3=n → right check skipped
+    }
+
+    #[test]
+    fn can_place_block_size_one() {
+        let line = make_line("?B?");
+        assert!(line.can_place_block(0, 1));
+        assert!(!line.can_place_block(1, 1)); // cell(1)=Blank
+        assert!(line.can_place_block(2, 1));
+    }
+}
