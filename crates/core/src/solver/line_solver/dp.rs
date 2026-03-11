@@ -65,11 +65,11 @@ impl<'a> DPSolver<'a> {
             self.fwd.set_value(i + 1, j, true);
         }
         // ブロック配置遷移
-        if let Some(&len) = self.blocks.get(j) {
-            if self.line.can_place_block(i, len) {
-                let next = self.next_after_block(i, len);
-                self.fwd.set_value(next, j + 1, true);
-            }
+        if let Some(&len) = self.blocks.get(j)
+            && self.line.can_place_block(i, len)
+        {
+            let next = self.next_after_block(i, len);
+            self.fwd.set_value(next, j + 1, true);
         }
     }
 
@@ -88,12 +88,12 @@ impl<'a> DPSolver<'a> {
             self.bwd.set_value(i, j, true);
         }
         // ブロック配置遷移
-        if let Some(&len) = self.blocks.get(j) {
-            if self.line.can_place_block(i, len) {
-                let next = self.next_after_block(i, len);
-                if self.bwd.value(next, j + 1) {
-                    self.bwd.set_value(i, j, true);
-                }
+        if let Some(&len) = self.blocks.get(j)
+            && self.line.can_place_block(i, len)
+        {
+            let next = self.next_after_block(i, len);
+            if self.bwd.value(next, j + 1) {
+                self.bwd.set_value(i, j, true);
             }
         }
     }

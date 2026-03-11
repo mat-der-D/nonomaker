@@ -134,12 +134,12 @@ impl<'a> Propagator<'a> {
         let decoded = self.id_encoder.decode(line_id);
         let (mut line, blocks) = match decoded {
             Decode::Row(row) => {
-                let line = LineBits::from_grid_row(&self.grid, row);
+                let line = LineBits::from_grid_row(self.grid, row);
                 let blocks = self.puzzle.row_clues()[row].blocks();
                 (line, blocks)
             }
             Decode::Col(col) => {
-                let line = LineBits::from_grid_col(&self.grid, col);
+                let line = LineBits::from_grid_col(self.grid, col);
                 let blocks = self.puzzle.col_clues()[col].blocks();
                 (line, blocks)
             }
