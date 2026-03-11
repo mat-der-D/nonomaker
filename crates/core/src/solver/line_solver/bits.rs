@@ -20,21 +20,44 @@ pub(crate) struct LineBits {
 
 impl LineBits {
     pub(crate) fn from_grid_row(grid: &Grid, row: usize) -> Self {
-        todo!()
-    }
-
-    pub(crate) fn from_grid_col(grid: &Grid, col: usize) -> Self {
-        todo!()
-    }
-
-    fn new(len: usize) -> Self {
+        let len = grid.width();
         let mask = create_repunit(len);
+        let (can_be_filled, can_be_blank) =
+            Self::build_bits((0..len).map(|col| *grid.cell(row, col)));
         Self {
-            can_be_filled: mask,
-            can_be_blank: mask,
+            can_be_filled,
+            can_be_blank,
             len,
             mask,
         }
+    }
+
+    pub(crate) fn from_grid_col(grid: &Grid, col: usize) -> Self {
+        let len = grid.height();
+        let mask = create_repunit(len);
+        let (can_be_filled, can_be_blank) =
+            Self::build_bits((0..len).map(|row| *grid.cell(row, col)));
+        Self {
+            can_be_filled,
+            can_be_blank,
+            len,
+            mask,
+        }
+    }
+
+    fn build_bits(cells: impl Iterator<Item = Cell>) -> (u64, u64) {
+        let mut can_be_filled = 0;
+        let mut can_be_blank = 0;
+        for (i, cell) in cells.enumerate() {
+            let bit = 1 << i;
+            if matches!(cell, Cell::Filled | Cell::Unknown) {
+                can_be_filled |= bit;
+            }
+            if matches!(cell, Cell::Blank | Cell::Unknown) {
+                can_be_blank |= bit;
+            }
+        }
+        (can_be_filled, can_be_blank)
     }
 
     pub(crate) fn len(&self) -> usize {

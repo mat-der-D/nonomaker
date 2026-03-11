@@ -1,3 +1,3 @@
 pub mod format;
-mod solver;
+pub mod solver;
 mod types;
