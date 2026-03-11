@@ -141,6 +141,21 @@ pub fn solution_to_json(solution: &Solution) -> Result<String, FormatError> {
     Ok(serde_json::to_string(&json)?)
 }
 
+pub fn partial_grid_to_json(grid: &Grid) -> String {
+    let rows: Vec<Vec<Option<bool>>> = (0..grid.height())
+        .map(|r| {
+            (0..grid.width())
+                .map(|c| match grid.cell(r, c) {
+                    Cell::Filled => Some(true),
+                    Cell::Blank => Some(false),
+                    Cell::Unknown => None,
+                })
+                .collect()
+        })
+        .collect();
+    serde_json::to_string(&rows).expect("partial grid serialization is infallible")
+}
+
 pub fn solution_from_json(s: &str) -> Result<Solution, FormatError> {
     let json: SolutionJson = serde_json::from_str(s)?;
     Ok(match json {
