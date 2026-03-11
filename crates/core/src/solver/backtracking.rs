@@ -8,7 +8,7 @@ pub(super) fn solve(grid: Grid, puzzle: &Puzzle, max_sol: usize) -> Solution {
 }
 
 fn search(grid: Grid, puzzle: &Puzzle, solutions: &mut Vec<Grid>, max_sol: usize) {
-    if solutions.len() == max_sol {
+    if max_sol > 0 && solutions.len() == max_sol {
         return;
     }
 
