@@ -6,8 +6,10 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "build:ci": "bun run build:wasm && bun run build",
     "preview": "vite preview",
-    "build:wasm": "wasm-pack build ../../crates/wasm --target web --out-dir ../../apps/web/pkg"
+    "build:wasm": "wasm-pack build ../../crates/wasm --target web --out-dir ../../apps/web/pkg",
+    "deploy": "bun run build:ci && bunx wrangler deploy"
   },
   "dependencies": {
     "comlink": "^4.4.2",
