@@ -113,13 +113,13 @@ button { cursor: pointer; }
   border-color: var(--amber);
 }
 
-/* ── Toolbar ───────────────────────────────────────────────── */
+/* ── Shared controls ───────────────────────────────────────── */
 .toolbar {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 4px;
-  padding: 8px;
+  gap: 8px;
+  padding: 10px 12px;
   background: #1e2a3e;
   border: 1px solid rgba(255,255,255,0.14);
   border-radius: 10px;
@@ -129,6 +129,7 @@ button { cursor: pointer; }
   display: flex;
   align-items: center;
   gap: 4px;
+  flex-wrap: wrap;
 }
 
 .toolbar-sep {
@@ -139,7 +140,7 @@ button { cursor: pointer; }
   flex-shrink: 0;
 }
 
-.toolbar input[type="number"] {
+.size-fields input[type="number"] {
   width: 56px;
   background: #28364e;
   border: 1px solid rgba(255,255,255,0.2);
@@ -151,9 +152,9 @@ button { cursor: pointer; }
   font-size: 0.9rem;
   -moz-appearance: textfield;
 }
-.toolbar input[type="number"]::-webkit-inner-spin-button,
-.toolbar input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; }
-.toolbar input[type="number"]:focus {
+.size-fields input[type="number"]::-webkit-inner-spin-button,
+.size-fields input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; }
+.size-fields input[type="number"]:focus {
   outline: none;
   border-color: var(--amber);
 }
@@ -238,6 +239,19 @@ button { cursor: pointer; }
   min-height: 480px;
 }
 
+.maker-editor-panel {
+  align-items: stretch;
+  justify-content: stretch;
+}
+
+.maker-workbench {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 144px minmax(0, 1fr);
+  gap: 18px;
+  align-items: start;
+}
+
 .side-panel {
   display: grid;
   gap: 12px;
@@ -307,6 +321,65 @@ button { cursor: pointer; }
   justify-items: center;
 }
 
+.toolbox {
+  padding: 12px;
+  position: sticky;
+  top: 24px;
+}
+
+.toolbox-header h2 {
+  margin-bottom: 6px;
+}
+
+.toolbox-header p,
+.toolbox-hint {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--text-2);
+}
+
+.toolbox-grid {
+  margin-top: 12px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.tool-button {
+  display: grid;
+  justify-items: center;
+  width: 100%;
+  padding: 7px 4px;
+  border-radius: 8px;
+  border: 1px solid var(--border-2);
+  background: var(--bg-2);
+  color: var(--text-2);
+  transition: border-color 0.12s, background 0.12s, color 0.12s, transform 0.12s;
+}
+
+.tool-button:hover {
+  border-color: rgba(240, 180, 41, 0.42);
+  color: var(--text);
+  transform: translateY(-1px);
+}
+
+.tool-button.active {
+  background: linear-gradient(180deg, rgba(240, 180, 41, 0.18), rgba(240, 180, 41, 0.08));
+  border-color: var(--amber);
+  color: var(--text);
+}
+
+.tool-button-icon {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.05);
+  font-size: 1.15rem;
+  font-family: "DM Mono", monospace;
+}
+
 /* ── Editor grid ───────────────────────────────────────────── */
 .editor-grid,
 .play-grid {
@@ -368,6 +441,14 @@ button { cursor: pointer; }
 }
 
 .cell.marked { color: #cc2222; }
+
+.cell.preview-filled {
+  background: #505050;
+}
+
+.cell.preview-cleared {
+  background: #f1e8cf;
+}
 
 .play-grid .cell {
   width: 32px;
@@ -729,6 +810,12 @@ button { cursor: pointer; }
 /* ── Play shell ────────────────────────────────────────────── */
 .play-shell .card { align-self: start; }
 
+.size-fields {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
 .play-main {
   display: grid;
   gap: 12px;
@@ -789,6 +876,15 @@ button { cursor: pointer; }
   }
   .image-modal-body, .preview-panels {
     grid-template-columns: 1fr;
+  }
+  .maker-workbench {
+    grid-template-columns: 1fr;
+  }
+  .toolbox {
+    position: static;
+  }
+  .toolbox-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   .play-toolbar {

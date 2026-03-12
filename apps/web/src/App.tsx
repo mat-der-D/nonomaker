@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { EditorGrid } from "./components/EditorGrid";
+import { EditorGrid, type EditorTool } from "./components/EditorGrid";
 import { PuzzleBoard, type PlayCell } from "./components/PuzzleBoard";
 import { useWasm } from "./hooks/useWasm";
 import { createGrid, equalGrid, puzzleDimensions } from "./utils/grid";
@@ -63,6 +63,7 @@ function MakerPage() {
   const [grid, setGrid] = useState<Grid>(() => createGrid(20, 20));
   const [history, setHistory] = useState<Grid[]>([]);
   const [future, setFuture] = useState<Grid[]>([]);
+  const [tool, setTool] = useState<EditorTool>("draw");
   const [size, setSize] = useState({ width: 20, height: 20 });
   const [sizeDraft, setSizeDraft] = useState({ width: "20", height: "20" });
   const [analysis, setAnalysis] = useState<AnalysisState>({
@@ -239,6 +240,15 @@ function MakerPage() {
   }
 
   const exportAllowed = analysis.solution?.status === "unique";
+  const toolItems: Array<{ id: EditorTool; icon: string; label: string; hint: string }> = [
+    { id: "draw", icon: "■", label: "ペン", hint: "塗る" },
+    { id: "erase", icon: "□", label: "消しゴム", hint: "消す" },
+    { id: "invert", icon: "◪", label: "反転", hint: "白黒反転" },
+    { id: "line", icon: "／", label: "直線", hint: "ドラッグで線" },
+    { id: "rect", icon: "▦", label: "矩形", hint: "ドラッグで面" },
+    { id: "fill", icon: "▨", label: "バケツ", hint: "連結塗り" },
+  ];
+  const activeTool = toolItems.find((item) => item.id === tool) ?? toolItems[0];
 
   return (
     <div className="app-shell">
@@ -251,41 +261,32 @@ function MakerPage() {
 
       <section className="toolbar">
         <div className="toolbar-group">
-          <input
-            type="number"
-            min={5}
-            max={50}
-            value={sizeDraft.width}
-            onChange={(event) => setSizeDraft((current) => ({ ...current, width: event.target.value }))}
-            onBlur={() =>
-              setSizeDraft((current) => ({ ...current, width: String(clampSize(current.width)) }))
-            }
-          />
-          <span className="toolbar-x">×</span>
-          <input
-            type="number"
-            min={5}
-            max={50}
-            value={sizeDraft.height}
-            onChange={(event) => setSizeDraft((current) => ({ ...current, height: event.target.value }))}
-            onBlur={() =>
-              setSizeDraft((current) => ({ ...current, height: String(clampSize(current.height)) }))
-            }
-          />
+          <div className="size-fields">
+            <input
+              type="number"
+              min={5}
+              max={50}
+              value={sizeDraft.width}
+              onChange={(event) => setSizeDraft((current) => ({ ...current, width: event.target.value }))}
+              onBlur={() =>
+                setSizeDraft((current) => ({ ...current, width: String(clampSize(current.width)) }))
+              }
+            />
+            <span className="toolbar-x">×</span>
+            <input
+              type="number"
+              min={5}
+              max={50}
+              value={sizeDraft.height}
+              onChange={(event) => setSizeDraft((current) => ({ ...current, height: event.target.value }))}
+              onBlur={() =>
+                setSizeDraft((current) => ({ ...current, height: String(clampSize(current.height)) }))
+              }
+            />
+          </div>
           <button type="button" className="btn btn-subtle" onClick={resizeGrid}>
-            ✓ 適用
+            サイズ適用
           </button>
-          <button
-            type="button"
-            className="btn btn-subtle"
-            onClick={() => setImageModalOpen(true)}
-          >
-            🖼 画像変換
-          </button>
-          <label className="file-button btn btn-subtle">
-            📂 読み込み
-            <input type="file" accept=".json,application/json" onChange={(event) => event.target.files?.[0] && void importJson(event.target.files[0])} />
-          </label>
         </div>
 
         <div className="toolbar-sep" />
@@ -305,12 +306,17 @@ function MakerPage() {
         <div className="toolbar-sep" />
 
         <div className="toolbar-group">
-          <button type="button" className="btn btn-subtle" onClick={() => void runCheck()} disabled={busy !== null}>
-            ✔ 解答チェック
+          <button
+            type="button"
+            className="btn btn-subtle"
+            onClick={() => setImageModalOpen(true)}
+          >
+            🖼 画像変換
           </button>
-          <button type="button" className="btn btn-subtle" onClick={() => void runDifficultyCheck()} disabled={busy !== null}>
-            📊 難易度チェック
-          </button>
+          <label className="file-button btn btn-subtle">
+            📂 JSON 読み込み
+            <input type="file" accept=".json,application/json" onChange={(event) => event.target.files?.[0] && void importJson(event.target.files[0])} />
+          </label>
           <button type="button" className="btn btn-subtle" onClick={() => void exportArtifacts()} disabled={!exportAllowed}>
             ⬇ ファイル出力
           </button>
@@ -318,18 +324,53 @@ function MakerPage() {
             🔗 共有
           </button>
         </div>
+
+        <div className="toolbar-sep" />
+
+        <div className="toolbar-group">
+          <button type="button" className="btn btn-subtle" onClick={() => void runCheck()} disabled={busy !== null}>
+            ✔ 解答チェック
+          </button>
+          <button type="button" className="btn btn-subtle" onClick={() => void runDifficultyCheck()} disabled={busy !== null}>
+            📊 難易度チェック
+          </button>
+        </div>
       </section>
 
       <section className="content">
-        <div className="editor-panel">
-          <EditorGrid
-            grid={grid}
-            onChange={(next) => {
-              if (!equalGrid(next, grid)) {
-                commit(next);
-              }
-            }}
-          />
+        <div className="editor-panel maker-editor-panel">
+          <div className="maker-workbench">
+            <aside className="toolbox card">
+              <div className="toolbox-header">
+                <h2>Tools</h2>
+                <p>{activeTool.label}{tool === "fill" ? " / 連結塗り" : ""}</p>
+              </div>
+              <div className="toolbox-grid" role="toolbar" aria-label="drawing tools">
+                {toolItems.map((item) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    className={`tool-button ${item.id === tool ? "active" : ""}`}
+                    onClick={() => setTool(item.id)}
+                    aria-pressed={item.id === tool}
+                    title={`${item.label}: ${item.hint}`}
+                  >
+                    <span className="tool-button-icon" aria-hidden="true">{item.icon}</span>
+                  </button>
+                ))}
+              </div>
+            </aside>
+
+            <EditorGrid
+              grid={grid}
+              tool={tool}
+              onChange={(next) => {
+                if (!equalGrid(next, grid)) {
+                  commit(next);
+                }
+              }}
+            />
+          </div>
         </div>
 
         <aside className="side-panel">
@@ -348,6 +389,12 @@ function MakerPage() {
                 </button>
               </>
             )}
+          </section>
+
+          <section className="card">
+            <h2>Editor</h2>
+            <p>現在のツール: {activeTool.label}</p>
+            <p>盤面サイズ: {size.width} × {size.height}</p>
           </section>
         </aside>
       </section>
