@@ -204,7 +204,7 @@ function MakerPage() {
             onChange={(event) => setSize((current) => ({ ...current, height: clampSize(event.target.value) }))}
           />
           <button type="button" className="btn btn-subtle" onClick={resizeGrid}>
-            適用
+            ✓ 適用
           </button>
           <button
             type="button"
@@ -214,7 +214,7 @@ function MakerPage() {
             🖼 画像変換
           </button>
           <label className="file-button btn btn-subtle">
-            読み込み
+            📂 読み込み
             <input type="file" accept=".json,application/json" onChange={(event) => event.target.files?.[0] && void importJson(event.target.files[0])} />
           </label>
         </div>
@@ -223,13 +223,13 @@ function MakerPage() {
 
         <div className="toolbar-group">
           <button type="button" className="btn btn-ghost" onClick={() => history.length && (setFuture((current) => [grid, ...current]), setGrid(history[history.length - 1]), setHistory((current) => current.slice(0, -1)))} disabled={history.length === 0}>
-            ← Undo
+            ↩ Undo
           </button>
           <button type="button" className="btn btn-ghost" onClick={() => future.length && (setHistory((current) => [...current, grid]), setGrid(future[0]), setFuture((current) => current.slice(1)))} disabled={future.length === 0}>
-            Redo →
+            ↪ Redo
           </button>
           <button type="button" className="btn btn-ghost" onClick={() => window.confirm("盤面をクリアしますか？") && commit(createGrid(grid[0].length, grid.length))}>
-            🗑 Clear
+            🗑 クリア
           </button>
         </div>
 
@@ -237,16 +237,16 @@ function MakerPage() {
 
         <div className="toolbar-group">
           <button type="button" className="btn btn-subtle" onClick={() => void runCheck()} disabled={busy !== null}>
-            解答チェック
+            ✔ 解答チェック
           </button>
           <button type="button" className="btn btn-subtle" onClick={() => void runCheck()} disabled={busy !== null}>
-            難易度チェック
+            📊 難易度チェック
           </button>
           <button type="button" className="btn btn-subtle" onClick={() => void exportArtifacts()} disabled={!exportAllowed}>
-            ファイル出力
+            ⬇ ファイル出力
           </button>
           <button type="button" className="btn btn-primary" onClick={() => void generateShare()} disabled={!exportAllowed}>
-            共有
+            🔗 共有
           </button>
         </div>
       </section>
@@ -375,7 +375,7 @@ function ImageConvertModal({
         <div className="image-modal-body">
           <div className="image-preview-stack">
             <label className="file-button inline-file-button btn btn-subtle">
-              画像を選択
+              🖼 画像を選択
               <input
                 type="file"
                 accept="image/*"
@@ -604,7 +604,7 @@ function PlayPage({ id }: { id: string }) {
           <h2>Play</h2>
           <p>{message}</p>
           <button type="button" className="btn btn-subtle" onClick={() => navigator.clipboard.writeText(window.location.href)}>
-            URL をコピー
+            📋 URL をコピー
           </button>
         </div>
       </section>
