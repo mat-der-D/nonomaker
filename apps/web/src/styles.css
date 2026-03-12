@@ -845,8 +845,40 @@ button { cursor: pointer; }
   width: min(560px, 100%);
 }
 
+.guide-modal {
+  width: min(720px, 100%);
+}
+
 .progress-modal {
   width: min(420px, 100%);
+}
+
+.guide-modal-body {
+  display: grid;
+  gap: 14px;
+  margin-top: 18px;
+}
+
+.guide-section {
+  padding: 14px 16px;
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+.guide-section h3 {
+  margin: 0 0 8px;
+  font-family: "DM Mono", monospace;
+  font-size: 0.8rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--amber);
+}
+
+.guide-section p {
+  margin: 0;
+  color: var(--text-2);
+  line-height: 1.7;
 }
 
 .share-modal-body {

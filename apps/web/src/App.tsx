@@ -40,6 +40,8 @@ interface ShareDialogState {
   url: string;
 }
 
+const makerGuideSeenKey = "nonomaker-maker-guide-seen";
+
 const defaultImageParams: ImageToGridParams = {
   smooth_strength: 1,
   threshold: 128,
@@ -94,6 +96,7 @@ function MakerPage() {
     message: null,
   });
   const [busy, setBusy] = useState<string | null>(null);
+  const [guideOpen, setGuideOpen] = useState(false);
   const [imageModalOpen, setImageModalOpen] = useState(false);
   const [exportDialog, setExportDialog] = useState<ExportDialogState>({
     open: false,
@@ -131,6 +134,14 @@ function MakerPage() {
   useEffect(() => {
     setSelectedSolutionIndex(0);
   }, [checkDialog.solution]);
+
+  useEffect(() => {
+    if (window.localStorage.getItem(makerGuideSeenKey) === "1") {
+      return;
+    }
+    setGuideOpen(true);
+    window.localStorage.setItem(makerGuideSeenKey, "1");
+  }, []);
 
   function commit(next: Grid) {
     setHistory((current) => [...current, grid]);
@@ -383,6 +394,9 @@ function MakerPage() {
           <p className="eyebrow">Nonogram puzzle maker</p>
           <h1>Nono<span>Maker</span></h1>
         </div>
+        <button type="button" className="btn btn-primary" onClick={() => setGuideOpen(true)}>
+          使い方
+        </button>
       </header>
 
       <section className="toolbar">
@@ -663,6 +677,8 @@ function MakerPage() {
         />
       )}
 
+      {guideOpen && <MakerGuideModal onClose={() => setGuideOpen(false)} />}
+
       {busy === "import" && (
         <ProgressModal
           title="JSON 読み込み"
@@ -805,6 +821,49 @@ function ProgressModal({
           <div className="toolbar-group">
             <button type="button" className="btn btn-ghost" onClick={onCancel}>
               中止
+            </button>
+          </div>
+        </footer>
+      </section>
+    </div>
+  );
+}
+
+function MakerGuideModal({ onClose }: { onClose: () => void }) {
+  return (
+    <div className="modal-backdrop" role="presentation" onClick={onClose}>
+      <section className="modal-card guide-modal" onClick={(event) => event.stopPropagation()}>
+        <header className="modal-header">
+          <div>
+            <p className="eyebrow">Guide</p>
+            <h2>NonoMaker の使い方</h2>
+          </div>
+        </header>
+
+        <div className="guide-modal-body">
+          <section className="guide-section">
+            <h3>1. 盤面を作る</h3>
+            <p>左のツールで塗る、消す、反転、直線、矩形、塗りつぶしが使えます。<strong>サイズ適用</strong> で盤面サイズを変え、<strong>画像から盤面作成</strong> で画像から下書きを作ることもできます。</p>
+          </section>
+          <section className="guide-section">
+            <h3>2. 解答を確認する</h3>
+            <p>右の <strong>解答チェック</strong> を押すと、一意解・複数解・解なしを確認できます。複数解の場合は、タブで候補の解を切り替えて確認できます。</p>
+          </section>
+          <section className="guide-section">
+            <h3>3. 保存と共有</h3>
+            <p><strong>ファイル出力</strong> では問題 PNG、問題 + 解答 PNG、問題 JSON、解答 JSON を選んで保存できます。<strong>共有</strong> はプレイ用 URL をコピーし、そのままテストプレイできます。</p>
+          </section>
+          <section className="guide-section">
+            <h3>4. JSON を読み込む</h3>
+            <p><strong>解答 JSON</strong> はすぐに編集用盤面として開きます。<strong>問題 JSON</strong> は解いてから盤面を復元するため、時間がかかる場合があります。読み込み中は中止できます。</p>
+          </section>
+        </div>
+
+        <footer className="modal-footer">
+          <p className="modal-status">必要になったら右上の <strong>使い方</strong> からいつでも開けます。</p>
+          <div className="toolbar-group">
+            <button type="button" className="btn btn-primary" onClick={onClose}>
+              閉じる
             </button>
           </div>
         </footer>
