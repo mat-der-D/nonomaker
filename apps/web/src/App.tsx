@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { EditorGrid } from "./components/EditorGrid";
-import { PuzzleBoard } from "./components/PuzzleBoard";
+import { PuzzleBoard, type PlayCell, type PlayTool } from "./components/PuzzleBoard";
 import { useWasm } from "./hooks/useWasm";
 import { createGrid, equalGrid, puzzleDimensions } from "./utils/grid";
 import {
@@ -689,29 +689,29 @@ function StaticGridPreview({
 }
 
 function PlayPage({ id }: { id: string }) {
-  const [solution, setSolution] = useState<Grid | null>(null);
+  const [solutionGrid, setSolutionGrid] = useState<Grid | null>(null);
   const [puzzle, setPuzzle] = useState<Puzzle | null>(null);
-  const [progress, setProgress] = useState<Grid | null>(null);
-  const [marks, setMarks] = useState<boolean[][] | null>(null);
-  const [message, setMessage] = useState("問題を読み込み中...");
+  const [playCells, setPlayCells] = useState<PlayCell[][] | null>(null);
+  const [activeTool, setActiveTool] = useState<PlayTool>("filled");
+  const [statusMessage, setStatusMessage] = useState("問題を読み込み中...");
 
   useEffect(() => {
     let cancelled = false;
     void (async () => {
       try {
-        const solved = await idToGrid(id);
-        const nextPuzzle = await gridToPuzzle(solved);
+        const decodedSolutionGrid = await idToGrid(id);
+        const nextPuzzle = await gridToPuzzle(decodedSolutionGrid);
         const { width, height } = puzzleDimensions(nextPuzzle);
         if (!cancelled) {
-          setSolution(solved);
+          setSolutionGrid(decodedSolutionGrid);
           setPuzzle(nextPuzzle);
-          setProgress(createGrid(width, height));
-          setMarks(createGrid(width, height));
-          setMessage("右クリックで × を置けます。");
+          setPlayCells(createPlayGrid(width, height));
+          setActiveTool("filled");
+          setStatusMessage("左クリックで入力、右クリックで反対の記号を置けます。");
         }
       } catch (error) {
         if (!cancelled) {
-          setMessage(String(error));
+          setStatusMessage(String(error));
         }
       }
     })();
@@ -720,18 +720,33 @@ function PlayPage({ id }: { id: string }) {
     };
   }, [id]);
 
-  useEffect(() => {
-    if (!solution || !progress) {
+  if (!puzzle || !playCells || !solutionGrid) {
+    return <div className="screen-state">{statusMessage}</div>;
+  }
+
+  const playStats = computePlayStats(playCells, solutionGrid);
+  const progressRatio =
+    playStats.targetFilled === 0 ? 100 : Math.round((playStats.correctFilled / playStats.targetFilled) * 100);
+
+  function resetBoard() {
+    const { width, height } = puzzleDimensions(puzzle);
+    setPlayCells(createPlayGrid(width, height));
+    setStatusMessage("盤面をリセットしました。");
+  }
+
+  function handlePlayCellsChange(nextPlayCells: PlayCell[][]) {
+    setPlayCells(nextPlayCells);
+    if (solvedBoard(nextPlayCells, solutionGrid)) {
+      setStatusMessage("完成です。");
       return;
     }
-    if (equalGrid(solution, progress)) {
-      setMarks(progress.map((row) => row.map((cell) => !cell)));
-      setMessage("完成です。おめでとう。");
-    }
-  }, [progress, solution]);
 
-  if (!puzzle || !progress || !marks) {
-    return <div className="screen-state">{message}</div>;
+    const nextPlayStats = computePlayStats(nextPlayCells, solutionGrid);
+    if (nextPlayStats.wrongFilled > 0) {
+      setStatusMessage(`誤って塗っているマスが ${nextPlayStats.wrongFilled} 個あります。`);
+    } else {
+      setStatusMessage("左クリックで入力、右クリックで反対の記号を置けます。");
+    }
   }
 
   return (
@@ -746,22 +761,110 @@ function PlayPage({ id }: { id: string }) {
         </a>
       </header>
       <section className="play-layout">
-        <PuzzleBoard
-          puzzle={puzzle}
-          progress={progress}
-          marks={marks}
-          onProgressChange={setProgress}
-          onMarksChange={setMarks}
-        />
-        <div className="card">
+        <div className="play-main">
+          <div className="play-toolbar card">
+            <div className="play-tools" role="group" aria-label="play tools">
+              <button
+                type="button"
+                className={`btn ${activeTool === "filled" ? "btn-primary" : "btn-subtle"}`}
+                onClick={() => setActiveTool("filled")}
+              >
+                塗る
+              </button>
+              <button
+                type="button"
+                className={`btn ${activeTool === "crossed" ? "btn-primary" : "btn-subtle"}`}
+                onClick={() => setActiveTool("crossed")}
+              >
+                × を置く
+              </button>
+            </div>
+            <div className="play-actions">
+              <button type="button" className="btn btn-ghost" onClick={resetBoard}>
+                リセット
+              </button>
+            </div>
+          </div>
+          <div className="editor-panel play-board-panel">
+            <PuzzleBoard
+              puzzle={puzzle}
+              cells={playCells}
+              tool={activeTool}
+              onCellsChange={handlePlayCellsChange}
+            />
+          </div>
+        </div>
+        <div className="card play-sidebar">
           <h2>Play</h2>
-          <p>{message}</p>
+          <p>{statusMessage}</p>
+          <div className="play-stats">
+            <div className="play-stat">
+              <span>進捗</span>
+              <strong>{progressRatio}%</strong>
+            </div>
+            <div className="ratio-bar-track">
+              <div className="ratio-bar-fill" style={{ width: `${progressRatio}%` }} />
+            </div>
+            <div className="play-stat">
+              <span>正しく塗れたマス</span>
+              <strong>
+                {playStats.correctFilled} / {playStats.targetFilled}
+              </strong>
+            </div>
+            <div className="play-stat">
+              <span>誤って塗ったマス</span>
+              <strong>{playStats.wrongFilled}</strong>
+            </div>
+            <div className="play-stat">
+              <span>× を置いたマス</span>
+              <strong>{playStats.crossed}</strong>
+            </div>
+          </div>
+          <p className="play-hint">左クリックは現在ツール、右クリックは反対の入力です。</p>
           <button type="button" className="btn btn-subtle" onClick={() => navigator.clipboard.writeText(window.location.href)}>
             📋 URL をコピー
           </button>
         </div>
       </section>
     </div>
+  );
+}
+
+function createPlayGrid(width: number, height: number): PlayCell[][] {
+  return Array.from({ length: height }, () => Array.from({ length: width }, () => "unknown"));
+}
+
+function computePlayStats(playCells: PlayCell[][], solutionGrid: Grid) {
+  let targetFilled = 0;
+  let correctFilled = 0;
+  let wrongFilled = 0;
+  let crossed = 0;
+
+  for (let rowIndex = 0; rowIndex < playCells.length; rowIndex += 1) {
+    for (let colIndex = 0; colIndex < playCells[0].length; colIndex += 1) {
+      if (solutionGrid[rowIndex][colIndex]) {
+        targetFilled += 1;
+      }
+      if (playCells[rowIndex][colIndex] === "filled" && solutionGrid[rowIndex][colIndex]) {
+        correctFilled += 1;
+      }
+      if (playCells[rowIndex][colIndex] === "filled" && !solutionGrid[rowIndex][colIndex]) {
+        wrongFilled += 1;
+      }
+      if (playCells[rowIndex][colIndex] === "crossed") {
+        crossed += 1;
+      }
+    }
+  }
+
+  return { targetFilled, correctFilled, wrongFilled, crossed };
+}
+
+function solvedBoard(playCells: PlayCell[][], solutionGrid: Grid) {
+  return playCells.every((playRow, rowIndex) =>
+    playRow.every((playCell, colIndex) =>
+      solutionGrid[rowIndex][colIndex] ? playCell === "filled" : playCell !== "filled",
+    ),
   );
 }
 

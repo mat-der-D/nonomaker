@@ -1,70 +1,196 @@
-import type { Grid, Puzzle } from "../wasm/types";
+import { useEffect, useMemo, useState } from "react";
+import type { Puzzle } from "../wasm/types";
 import { maxClueDepth } from "../utils/grid";
+
+export type PlayCell = "unknown" | "filled" | "crossed";
+export type PlayTool = "filled" | "crossed";
 
 interface PuzzleBoardProps {
   puzzle: Puzzle;
-  progress: Grid;
-  marks: boolean[][];
-  onProgressChange: (grid: Grid) => void;
-  onMarksChange: (marks: boolean[][]) => void;
+  cells: PlayCell[][];
+  tool: PlayTool;
+  onCellsChange: (cells: PlayCell[][]) => void;
 }
 
 export function PuzzleBoard({
   puzzle,
-  progress,
-  marks,
-  onProgressChange,
-  onMarksChange,
+  cells,
+  tool,
+  onCellsChange,
 }: PuzzleBoardProps) {
-  const { rows, cols } = maxClueDepth(puzzle);
+  const { maxRowClueSlots, maxColClueSlots } = maxClueDepth(puzzle);
+  const boardCellSize = 32;
+  const rowClueAreaWidth = maxRowClueSlots * boardCellSize + 4;
+  const colClueAreaHeight = maxColClueSlots * boardCellSize + 4;
+  const boardAreaWidth = puzzle.col_clues.length * boardCellSize + 4;
+  const [activeDrag, setActiveDrag] = useState<{
+    active: boolean;
+    value: PlayCell;
+  }>({
+    active: false,
+    value: "filled",
+  });
 
-  function toggleCell(row: number, col: number) {
-    const next = progress.map((line) => [...line]);
-    next[row][col] = !next[row][col];
-    onProgressChange(next);
+  useEffect(() => {
+    function stopActiveDrag() {
+      setActiveDrag((current) => ({ ...current, active: false }));
+    }
+
+    window.addEventListener("pointerup", stopActiveDrag);
+    return () => window.removeEventListener("pointerup", stopActiveDrag);
+  }, []);
+
+  const solvedRows = useMemo(
+    () => cells.map((cellRow, rowIndex) => equalClues(computeClues(cellRow), puzzle.row_clues[rowIndex])),
+    [cells, puzzle.row_clues],
+  );
+  const solvedColumns = useMemo(
+    () =>
+      puzzle.col_clues.map((columnClue, columnIndex) =>
+        equalClues(
+          computeClues(cells.map((cellRow) => cellRow[columnIndex])),
+          columnClue,
+        ),
+      ),
+    [cells, puzzle.col_clues],
+  );
+
+  function overwriteCell(cellRowIndex: number, cellColumnIndex: number, nextCellValue: PlayCell) {
+    const nextCells = cells.map((cellRow) => [...cellRow]);
+    nextCells[cellRowIndex][cellColumnIndex] = nextCellValue;
+    onCellsChange(nextCells);
   }
 
-  function toggleMark(row: number, col: number) {
-    const next = marks.map((line) => [...line]);
-    next[row][col] = !next[row][col];
-    onMarksChange(next);
+  function toggleCell(cellRowIndex: number, cellColumnIndex: number, nextCellValue: PlayCell) {
+    const nextCells = cells.map((cellRow) => [...cellRow]);
+    nextCells[cellRowIndex][cellColumnIndex] =
+      cells[cellRowIndex][cellColumnIndex] === nextCellValue ? "unknown" : nextCellValue;
+    onCellsChange(nextCells);
+  }
+
+  function resolvePointerTool(isSecondaryAction: boolean) {
+    if (isSecondaryAction) {
+      return tool === "filled" ? "crossed" : "filled";
+    }
+    return tool;
   }
 
   return (
-    <div className="puzzle-board">
-      <div className="puzzle-corner" style={{ width: cols * 24, height: rows * 24 }} />
-      <div className="column-clues">
-        {puzzle.col_clues.map((clue, index) => (
-          <div key={index} className="clue-stack vertical">
-            {Array.from({ length: rows }, (_, slot) => clue[clue.length - rows + slot] ?? "")}
-          </div>
-        ))}
+    <div
+      className="puzzle-board"
+      style={{
+        gridTemplateColumns: `${rowClueAreaWidth}px auto`,
+        gridTemplateRows: `${colClueAreaHeight}px auto`,
+      }}
+    >
+      <div
+        className="puzzle-corner"
+        style={{ width: rowClueAreaWidth, height: colClueAreaHeight }}
+      />
+      <div
+        className="column-clues"
+        style={{
+          width: boardAreaWidth,
+          height: colClueAreaHeight,
+          gridTemplateColumns: `repeat(${puzzle.col_clues.length}, ${boardCellSize}px)`,
+          gridTemplateRows: `repeat(${maxColClueSlots}, ${boardCellSize}px)`,
+        }}
+      >
+        {Array.from({ length: maxColClueSlots }, (_, clueRowIndex) =>
+          puzzle.col_clues.map((columnClue, columnIndex) => {
+            const clueValue = columnClue[columnClue.length - maxColClueSlots + clueRowIndex] ?? "";
+            return (
+              <span
+                key={`col-${columnIndex}-${clueRowIndex}`}
+                className={`clue-cell ${solvedColumns[columnIndex] ? "solved" : ""}`}
+              >
+                {clueValue}
+              </span>
+            );
+          }),
+        )}
       </div>
-      <div className="row-clues">
-        {puzzle.row_clues.map((clue, index) => (
-          <div key={index} className="clue-stack horizontal">
-            {Array.from({ length: cols }, (_, slot) => clue[clue.length - cols + slot] ?? "")}
-          </div>
-        ))}
+      <div
+        className="row-clues"
+        style={{
+          width: rowClueAreaWidth,
+          gridTemplateColumns: `repeat(${maxRowClueSlots}, ${boardCellSize}px)`,
+          gridTemplateRows: `repeat(${puzzle.row_clues.length}, ${boardCellSize}px)`,
+        }}
+      >
+        {puzzle.row_clues.flatMap((rowClue, puzzleRowIndex) =>
+          Array.from({ length: maxRowClueSlots }, (_, clueColumnIndex) => {
+            const clueValue = rowClue[rowClue.length - maxRowClueSlots + clueColumnIndex] ?? "";
+            return (
+              <span
+                key={`row-${puzzleRowIndex}-${clueColumnIndex}`}
+                className={`clue-cell ${solvedRows[puzzleRowIndex] ? "solved" : ""}`}
+              >
+                {clueValue}
+              </span>
+            );
+          }),
+        )}
       </div>
-      <div className="play-grid" style={{ gridTemplateColumns: `repeat(${progress[0]?.length ?? 0}, 32px)` }}>
-        {progress.map((row, rowIndex) =>
-          row.map((cell, colIndex) => (
+      <div
+        className="play-grid"
+        style={{ gridTemplateColumns: `repeat(${cells[0]?.length ?? 0}, ${boardCellSize}px)` }}
+        onPointerLeave={() => setActiveDrag((current) => ({ ...current, active: false }))}
+      >
+        {cells.map((cellRow, cellRowIndex) =>
+          cellRow.map((cellValue, cellColumnIndex) => (
             <button
-              key={`${rowIndex}-${colIndex}`}
+              key={`${cellRowIndex}-${cellColumnIndex}`}
               type="button"
-              className={`cell ${cell ? "filled" : ""} ${marks[rowIndex][colIndex] ? "marked" : ""}`}
-              onClick={() => toggleCell(rowIndex, colIndex)}
+              className={["cell", `play-cell-${cellValue}`].join(" ")}
+              onPointerDown={(event) => {
+                const nextCellValue = resolvePointerTool(event.button === 2);
+                setActiveDrag({ active: true, value: nextCellValue });
+                toggleCell(cellRowIndex, cellColumnIndex, nextCellValue);
+              }}
+              onPointerEnter={() => {
+                if (!activeDrag.active) {
+                  return;
+                }
+                overwriteCell(cellRowIndex, cellColumnIndex, activeDrag.value);
+              }}
               onContextMenu={(event) => {
                 event.preventDefault();
-                toggleMark(rowIndex, colIndex);
+                toggleCell(cellRowIndex, cellColumnIndex, resolvePointerTool(true));
               }}
+              aria-label={`cell ${cellRowIndex + 1}-${cellColumnIndex + 1}`}
             >
-              {marks[rowIndex][colIndex] ? "×" : ""}
+              {cellValue === "crossed" ? "×" : ""}
             </button>
           )),
         )}
       </div>
     </div>
   );
+}
+
+function computeClues(line: PlayCell[]) {
+  const groups: number[] = [];
+  let run = 0;
+
+  line.forEach((cell) => {
+    if (cell === "filled") {
+      run += 1;
+      return;
+    }
+    if (run > 0) {
+      groups.push(run);
+      run = 0;
+    }
+  });
+
+  if (run > 0) {
+    groups.push(run);
+  }
+
+  return groups;
+}
+
+function equalClues(a: number[], b: number[]) {
+  return a.length === b.length && a.every((value, index) => value === b[index]);
 }

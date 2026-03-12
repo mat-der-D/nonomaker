@@ -29,7 +29,7 @@ export function puzzleDimensions(puzzle: Puzzle) {
 
 export function maxClueDepth(puzzle: Puzzle) {
   return {
-    rows: Math.max(...puzzle.row_clues.map((clue) => clue.length), 0),
-    cols: Math.max(...puzzle.col_clues.map((clue) => clue.length), 0),
+    maxRowClueSlots: Math.max(...puzzle.row_clues.map((clue) => clue.length), 0),
+    maxColClueSlots: Math.max(...puzzle.col_clues.map((clue) => clue.length), 0),
   };
 }
