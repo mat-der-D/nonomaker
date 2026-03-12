@@ -1,4 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react";
+import { FaFacebook, FaLine } from "react-icons/fa";
+import { FaBluesky, FaXTwitter } from "react-icons/fa6";
+import { SiMastodon, SiMisskey } from "react-icons/si";
 import { EditorGrid, type EditorTool } from "./components/EditorGrid";
 import { PuzzleBoard, type PlayCell } from "./components/PuzzleBoard";
 import { useWasm } from "./hooks/useWasm";
@@ -764,6 +767,48 @@ function ShareModal({
   url: string;
   onClose: () => void;
 }) {
+  const shareText = "お絵かきロジックの問題を作りました。ぜひ遊んでみてください。";
+  const encodedUrl = encodeURIComponent(url);
+  const encodedText = encodeURIComponent(shareText);
+  const shareTargets = [
+    {
+      icon: <FaXTwitter className="share-icon" aria-hidden="true" />,
+      brandClass: "x",
+      label: "X",
+      href: `https://twitter.com/intent/tweet?text=${encodedText}&url=${encodedUrl}`,
+    },
+    {
+      icon: <FaFacebook className="share-icon" aria-hidden="true" />,
+      brandClass: "facebook",
+      label: "Facebook",
+      href: `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`,
+    },
+    {
+      icon: <FaLine className="share-icon" aria-hidden="true" />,
+      brandClass: "line",
+      label: "LINE",
+      href: `https://social-plugins.line.me/lineit/share?url=${encodedUrl}`,
+    },
+    {
+      icon: <FaBluesky className="share-icon" aria-hidden="true" />,
+      brandClass: "bluesky",
+      label: "Bluesky",
+      href: `https://bsky.app/intent/compose?text=${encodedText}%20${encodedUrl}`,
+    },
+    {
+      icon: <SiMastodon className="share-icon" aria-hidden="true" />,
+      brandClass: "mastodon",
+      label: "Mastodon",
+      href: `https://mastodonshare.com/?text=${encodedText}%20${encodedUrl}`,
+    },
+    {
+      icon: <SiMisskey className="share-icon" aria-hidden="true" />,
+      brandClass: "misskey",
+      label: "Misskey",
+      href: `https://misskey-hub.net/share/?text=${encodedText}%20${encodedUrl}`,
+    },
+  ];
+
   return (
     <div className="modal-backdrop" role="presentation" onClick={onClose}>
       <section className="modal-card share-modal" onClick={(event) => event.stopPropagation()}>
@@ -776,6 +821,26 @@ function ShareModal({
 
         <div className="share-modal-body">
           <input className="share-input" readOnly value={url} />
+          <div className="share-targets">
+            {shareTargets
+              .filter((target) => target.href !== null || (typeof navigator !== "undefined" && "share" in navigator))
+              .map((target) => (
+              <button
+                key={target.label}
+                type="button"
+                className={`btn btn-subtle share-target-button ${target.brandClass ? `share-target-${target.brandClass}` : ""}`}
+                aria-label={target.label}
+                title={target.label}
+                onClick={() => {
+                  if (target.href) {
+                    window.open(target.href, "_blank", "noopener,noreferrer");
+                  }
+                }}
+              >
+                {target.icon}
+              </button>
+              ))}
+          </div>
         </div>
 
         <footer className="modal-footer">

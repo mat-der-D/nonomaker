@@ -889,6 +889,51 @@ button { cursor: pointer; }
   margin-top: 18px;
 }
 
+.share-targets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.share-target-button {
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  min-width: 42px;
+  padding: 0;
+}
+
+.share-icon {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+
+.share-target-x {
+  color: #f5f7fa;
+}
+
+.share-target-facebook {
+  color: #9fc0ff;
+}
+
+.share-target-line {
+  color: #b8ffd7;
+}
+
+.share-target-bluesky {
+  color: #9ed6ff;
+}
+
+.share-target-mastodon {
+  color: #c9bcff;
+}
+
+.share-target-misskey {
+  color: #c3ffb0;
+}
+
 .progress-modal-body {
   margin-top: 18px;
 }
