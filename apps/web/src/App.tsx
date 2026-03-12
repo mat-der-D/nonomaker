@@ -916,6 +916,7 @@ function PlayPage({ id }: { id: string }) {
   const [puzzle, setPuzzle] = useState<Puzzle | null>(null);
   const [playCells, setPlayCells] = useState<PlayCell[][] | null>(null);
   const [statusMessage, setStatusMessage] = useState("問題を読み込み中...");
+  const [playScale, setPlayScale] = useState("100");
 
   useEffect(() => {
     let cancelled = false;
@@ -946,8 +947,14 @@ function PlayPage({ id }: { id: string }) {
   }
 
   const playStats = computePlayStats(playCells, solutionGrid);
+  const playScaleValue = clampCanvasScale(playScale);
+  const boardCellSize = Math.max(10, Math.round((24 * playScaleValue) / 100));
   const progressRatio =
     playStats.targetFilled === 0 ? 100 : Math.round((playStats.correctFilled / playStats.targetFilled) * 100);
+
+  function nudgePlayScale(delta: number) {
+    setPlayScale(String(clampCanvasScale(String(playScaleValue + delta))));
+  }
 
   function resetBoard() {
     const { width, height } = puzzleDimensions(puzzle);
@@ -994,6 +1001,7 @@ function PlayPage({ id }: { id: string }) {
             <PuzzleBoard
               puzzle={puzzle}
               cells={playCells}
+              cellSize={boardCellSize}
               onCellsChange={handlePlayCellsChange}
             />
           </div>
@@ -1002,6 +1010,28 @@ function PlayPage({ id }: { id: string }) {
           <h2>Play</h2>
           <p>{statusMessage}</p>
           <div className="play-stats">
+            <div className="play-scale-control">
+              <label className="number-field">
+                <span>表示倍率</span>
+                <input
+                  type="number"
+                  min={50}
+                  max={300}
+                  step={5}
+                  value={playScale}
+                  onChange={(event) => setPlayScale(event.target.value)}
+                  onBlur={() => setPlayScale(String(playScaleValue))}
+                />
+              </label>
+              <div className="play-scale-buttons">
+                <button type="button" className="btn btn-ghost play-scale-btn" onClick={() => nudgePlayScale(5)}>
+                  +
+                </button>
+                <button type="button" className="btn btn-ghost play-scale-btn" onClick={() => nudgePlayScale(-5)}>
+                  -
+                </button>
+              </div>
+            </div>
             <div className="play-stat">
               <span>進捗</span>
               <strong>{progressRatio}%</strong>

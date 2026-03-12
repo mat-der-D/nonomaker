@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import type { Puzzle } from "../wasm/types";
 import { maxClueDepth } from "../utils/grid";
 
@@ -8,15 +8,17 @@ interface PuzzleBoardProps {
   puzzle: Puzzle;
   cells: PlayCell[][];
   onCellsChange: (cells: PlayCell[][]) => void;
+  cellSize?: number;
 }
 
 export function PuzzleBoard({
   puzzle,
   cells,
   onCellsChange,
+  cellSize = 32,
 }: PuzzleBoardProps) {
   const { maxRowClueSlots, maxColClueSlots } = maxClueDepth(puzzle);
-  const boardCellSize = 32;
+  const boardCellSize = cellSize;
   const rowClueAreaWidth = maxRowClueSlots * boardCellSize + 4;
   const colClueAreaHeight = maxColClueSlots * boardCellSize + 4;
   const boardAreaWidth = puzzle.col_clues.length * boardCellSize + 4;
@@ -69,9 +71,10 @@ export function PuzzleBoard({
     <div
       className="puzzle-board"
       style={{
+        "--board-cell-size": `${boardCellSize}px`,
         gridTemplateColumns: `${rowClueAreaWidth}px auto`,
         gridTemplateRows: `${colClueAreaHeight}px auto`,
-      }}
+      } as CSSProperties}
     >
       <div
         className="puzzle-corner"
