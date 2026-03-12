@@ -117,8 +117,8 @@ fn white_inference(
 
     // 隣接ブロック間の隙間
     for j in 0..k - 1 {
-        let gap_start = earliest[j] + blocks[j];
-        let gap_end = latest[j + 1];
+        let gap_start = latest[j] + blocks[j];
+        let gap_end = earliest[j + 1];
 
         for i in gap_start..gap_end {
             if line.cell(i) == Cell::Unknown {

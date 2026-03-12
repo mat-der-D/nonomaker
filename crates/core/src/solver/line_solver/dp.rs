@@ -154,7 +154,26 @@ impl<'a> DPSolver<'a> {
 
     /// セル i が Blank になりうるか（Blank として通過する経路が存在する）
     fn can_be_blank(&self, i: usize) -> bool {
-        (0..=self.k()).any(|j| self.fwd.value(i, j) && self.bwd.value(i + 1, j))
+        // 通常の Blank 遷移: fwd[i, j] → bwd[i+1, j]
+        if (0..=self.k()).any(|j| self.fwd.value(i, j) && self.bwd.value(i + 1, j)) {
+            return true;
+        }
+        // mandatory gap: ブロック j を位置 s に配置したとき s+len=i が強制 Blank になる
+        // fwd[s, j] → (block j @ s) → bwd[i+1, j+1]
+        if i >= self.n() {
+            return false;
+        }
+
+        self.blocks
+            .iter()
+            .enumerate()
+            .filter(|(_, len)| i >= **len)
+            .any(|(j, &len)| {
+                let s = i - len;
+                self.line.can_place_block(s, len)
+                    && self.fwd.value(s, j)
+                    && self.bwd.value(i + 1, j + 1)
+            })
     }
 }
 
