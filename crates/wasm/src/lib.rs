@@ -1,7 +1,8 @@
 use nonomaker_core::{
-    ImageConvertParams, format, grid_to_id as core_grid_to_id, grid_to_puzzle as core_grid_to_puzzle,
-    id_to_grid as core_id_to_grid, image_to_grid as core_image_to_grid,
-    solver::{BacktrackingSolver, CompleteSolver, PartialSolver, PropagationSolver},
+    ImageConvertParams, format, grid_to_id as core_grid_to_id,
+    grid_to_puzzle as core_grid_to_puzzle, id_to_grid as core_id_to_grid,
+    image_to_grid as core_image_to_grid,
+    solver::{BacktrackingSolver, CompleteSolver, PartialSolver, PropagationSolver, SatSolver},
 };
 use serde::Deserialize;
 use wasm_bindgen::prelude::*;
@@ -39,7 +40,8 @@ pub fn solve_partial(puzzle_json: &str, solver: &str) -> Result<Option<String>, 
 pub fn solve_complete(puzzle_json: &str, solver: &str) -> Result<String, JsValue> {
     let puzzle = parse_puzzle(puzzle_json)?;
     let solution = match solver {
-        "backtracking" | "sat" => BacktrackingSolver::new(2).solve_complete(&puzzle),
+        "backtracking" => BacktrackingSolver::new(2).solve_complete(&puzzle),
+        "sat" => SatSolver::new(2).solve_complete(&puzzle),
         other => {
             return Err(JsValue::from_str(&format!(
                 "unsupported complete solver: {other}"

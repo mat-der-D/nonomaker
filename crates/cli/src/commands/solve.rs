@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use clap::{Args, ValueEnum};
 use nonomaker_core::{
     format::{partial_grid_to_json, puzzle_from_json, solution_to_json},
-    solver::{BacktrackingSolver, CompleteSolver, PartialSolver, PropagationSolver},
+    solver::{BacktrackingSolver, CompleteSolver, PartialSolver, PropagationSolver, SatSolver},
 };
 
 use crate::{
@@ -15,6 +15,7 @@ use crate::{
 pub enum Solver {
     Linear,
     Backtracking,
+    Sat,
 }
 
 #[derive(Args)]
@@ -36,6 +37,11 @@ pub fn run(args: SolveArgs) -> Result<(), CliError> {
     let json = match args.solver {
         Solver::Backtracking => {
             let solver = BacktrackingSolver::new(args.max_sol);
+            let solution = solver.solve_complete(&puzzle);
+            solution_to_json(&solution)?
+        }
+        Solver::Sat => {
+            let solver = SatSolver::new(args.max_sol);
             let solution = solver.solve_complete(&puzzle);
             solution_to_json(&solution)?
         }

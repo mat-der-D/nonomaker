@@ -6,6 +6,7 @@ use crate::{
 mod backtracking;
 mod line_solver;
 mod propagation;
+mod sat;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub(crate) struct Contradiction;
@@ -22,6 +23,14 @@ pub enum Solution {
     None,
     Unique(Grid),
     Multiple(Vec<Grid>),
+}
+
+fn into_solution(solutions: Vec<Grid>) -> Solution {
+    match solutions.len() {
+        0 => Solution::None,
+        1 => Solution::Unique(solutions.into_iter().next().unwrap()),
+        _ => Solution::Multiple(solutions),
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -52,5 +61,22 @@ impl CompleteSolver for BacktrackingSolver {
             return Solution::None;
         };
         backtracking::solve(grid, puzzle, self.max_sol)
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct SatSolver {
+    max_sol: usize,
+}
+
+impl SatSolver {
+    pub fn new(max_sol: usize) -> Self {
+        Self { max_sol }
+    }
+}
+
+impl CompleteSolver for SatSolver {
+    fn solve_complete(&self, puzzle: &Puzzle) -> Solution {
+        sat::solve(puzzle, self.max_sol)
     }
 }

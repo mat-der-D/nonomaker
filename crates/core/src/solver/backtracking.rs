@@ -1,4 +1,4 @@
-use super::{Solution, propagation::propagate};
+use super::{Solution, into_solution, propagation::propagate};
 use crate::types::{Cell, Grid, Puzzle};
 
 pub(super) fn solve(grid: Grid, puzzle: &Puzzle, max_sol: usize) -> Solution {
@@ -34,12 +34,4 @@ fn find_unknown(grid: &Grid) -> Option<(usize, usize)> {
     (0..grid.height())
         .flat_map(|row| (0..grid.width()).map(move |col| (row, col)))
         .find(|&(row, col)| *grid.cell(row, col) == Cell::Unknown)
-}
-
-fn into_solution(solutions: Vec<Grid>) -> Solution {
-    match solutions.len() {
-        0 => Solution::None,
-        1 => Solution::Unique(solutions.into_iter().next().unwrap()),
-        _ => Solution::Multiple(solutions),
-    }
 }
