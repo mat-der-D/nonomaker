@@ -20,6 +20,8 @@ pub enum Solver {
     Fp1,
     Fp2,
     Backtracking,
+    Fp1Backtracking,
+    Fp2Backtracking,
     Sat,
 }
 
@@ -42,6 +44,16 @@ pub fn run(args: SolveArgs) -> Result<(), CliError> {
     let json = match args.solver {
         Solver::Backtracking => {
             let solver = BacktrackingSolver::new(args.max_sol);
+            let solution = solver.solve_complete(&puzzle);
+            solution_to_json(&solution)?
+        }
+        Solver::Fp1Backtracking => {
+            let solver = BacktrackingSolver::with_partial(args.max_sol, Fp1Solver);
+            let solution = solver.solve_complete(&puzzle);
+            solution_to_json(&solution)?
+        }
+        Solver::Fp2Backtracking => {
+            let solver = BacktrackingSolver::with_partial(args.max_sol, Fp2Solver);
             let solution = solver.solve_complete(&puzzle);
             solution_to_json(&solution)?
         }

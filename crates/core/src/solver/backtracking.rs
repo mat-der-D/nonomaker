@@ -1,13 +1,24 @@
-use super::{Solution, into_solution, propagation::propagate};
+use super::{PartialSolver, Solution, into_solution};
 use crate::types::{Cell, Grid, Puzzle};
 
-pub(super) fn solve(grid: Grid, puzzle: &Puzzle, max_sol: usize) -> Solution {
+pub(super) fn solve<P: PartialSolver>(
+    grid: Grid,
+    puzzle: &Puzzle,
+    partial: &P,
+    max_sol: usize,
+) -> Solution {
     let mut solutions = Vec::new();
-    search(grid, puzzle, &mut solutions, max_sol);
+    search(grid, puzzle, partial, &mut solutions, max_sol);
     into_solution(solutions)
 }
 
-fn search(grid: Grid, puzzle: &Puzzle, solutions: &mut Vec<Grid>, max_sol: usize) {
+fn search<P: PartialSolver>(
+    grid: Grid,
+    puzzle: &Puzzle,
+    partial: &P,
+    solutions: &mut Vec<Grid>,
+    max_sol: usize,
+) {
     if max_sol > 0 && solutions.len() == max_sol {
         return;
     }
@@ -19,14 +30,14 @@ fn search(grid: Grid, puzzle: &Puzzle, solutions: &mut Vec<Grid>, max_sol: usize
 
     let mut filled = grid.clone();
     *filled.cell_mut(row, col) = Cell::Filled;
-    if propagate(&mut filled, puzzle) {
-        search(filled, puzzle, solutions, max_sol);
+    if partial.reduce(&mut filled, puzzle).is_ok() {
+        search(filled, puzzle, partial, solutions, max_sol);
     }
 
     let mut blank = grid;
     *blank.cell_mut(row, col) = Cell::Blank;
-    if propagate(&mut blank, puzzle) {
-        search(blank, puzzle, solutions, max_sol);
+    if partial.reduce(&mut blank, puzzle).is_ok() {
+        search(blank, puzzle, partial, solutions, max_sol);
     }
 }
 

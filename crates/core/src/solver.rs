@@ -1,5 +1,4 @@
 use crate::{
-    solver::propagation::propagate,
     types::{Grid, Puzzle},
 };
 
@@ -10,10 +9,16 @@ mod propagation;
 mod sat;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub(crate) struct Contradiction;
+pub struct Contradiction;
 
 pub trait PartialSolver {
-    fn solve_partial(&self, puzzle: &Puzzle) -> Option<Grid>;
+    fn reduce(&self, grid: &mut Grid, puzzle: &Puzzle) -> Result<(), Contradiction>;
+
+    fn solve_partial(&self, puzzle: &Puzzle) -> Option<Grid> {
+        let mut grid = Grid::new(puzzle.width(), puzzle.height());
+        self.reduce(&mut grid, puzzle).ok()?;
+        Some(grid)
+    }
 }
 
 pub trait CompleteSolver {
@@ -38,10 +43,8 @@ fn into_solution(solutions: Vec<Grid>) -> Solution {
 pub struct PropagationSolver;
 
 impl PartialSolver for PropagationSolver {
-    fn solve_partial(&self, puzzle: &Puzzle) -> Option<Grid> {
-        let mut grid = Grid::new(puzzle.width(), puzzle.height());
-        let valid = propagate(&mut grid, puzzle);
-        if valid { Some(grid) } else { None }
+    fn reduce(&self, grid: &mut Grid, puzzle: &Puzzle) -> Result<(), Contradiction> {
+        propagation::reduce(grid, puzzle)
     }
 }
 
@@ -49,8 +52,8 @@ impl PartialSolver for PropagationSolver {
 pub struct Fp1Solver;
 
 impl PartialSolver for Fp1Solver {
-    fn solve_partial(&self, puzzle: &Puzzle) -> Option<Grid> {
-        fully_probing::solve(puzzle, fully_probing::FullyProbingMode::Fp1)
+    fn reduce(&self, grid: &mut Grid, puzzle: &Puzzle) -> Result<(), Contradiction> {
+        fully_probing::reduce(grid, puzzle, fully_probing::FullyProbingMode::Fp1)
     }
 }
 
@@ -58,28 +61,38 @@ impl PartialSolver for Fp1Solver {
 pub struct Fp2Solver;
 
 impl PartialSolver for Fp2Solver {
-    fn solve_partial(&self, puzzle: &Puzzle) -> Option<Grid> {
-        fully_probing::solve(puzzle, fully_probing::FullyProbingMode::Fp2)
+    fn reduce(&self, grid: &mut Grid, puzzle: &Puzzle) -> Result<(), Contradiction> {
+        fully_probing::reduce(grid, puzzle, fully_probing::FullyProbingMode::Fp2)
     }
 }
 
 #[derive(Debug, Clone)]
-pub struct BacktrackingSolver {
+pub struct BacktrackingSolver<P = PropagationSolver> {
+    partial: P,
     max_sol: usize,
 }
 
 impl BacktrackingSolver {
     pub fn new(max_sol: usize) -> Self {
-        Self { max_sol }
+        Self {
+            partial: PropagationSolver,
+            max_sol,
+        }
     }
 }
 
-impl CompleteSolver for BacktrackingSolver {
+impl<P> BacktrackingSolver<P> {
+    pub fn with_partial(max_sol: usize, partial: P) -> Self {
+        Self { partial, max_sol }
+    }
+}
+
+impl<P: PartialSolver> CompleteSolver for BacktrackingSolver<P> {
     fn solve_complete(&self, puzzle: &Puzzle) -> Solution {
-        let Some(grid) = PropagationSolver.solve_partial(puzzle) else {
+        let Some(grid) = self.partial.solve_partial(puzzle) else {
             return Solution::None;
         };
-        backtracking::solve(grid, puzzle, self.max_sol)
+        backtracking::solve(grid, puzzle, &self.partial, self.max_sol)
     }
 }
 

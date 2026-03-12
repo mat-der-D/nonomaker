@@ -3,8 +3,8 @@ use nonomaker_core::{
     grid_to_puzzle as core_grid_to_puzzle, id_to_grid as core_id_to_grid,
     image_to_grid as core_image_to_grid,
     solver::{
-        BacktrackingSolver, CompleteSolver, Fp1Solver, Fp2Solver, PartialSolver,
-        PropagationSolver, SatSolver,
+        BacktrackingSolver, CompleteSolver, Fp1Solver, Fp2Solver, PartialSolver, PropagationSolver,
+        SatSolver,
     },
 };
 use serde::Deserialize;
@@ -50,6 +50,8 @@ pub fn solve_complete(puzzle_json: &str, solver: &str) -> Result<String, JsValue
     let puzzle = parse_puzzle(puzzle_json)?;
     let solution = match solver {
         "backtracking" => BacktrackingSolver::new(2).solve_complete(&puzzle),
+        "fp1-backtracking" => BacktrackingSolver::with_partial(2, Fp1Solver).solve_complete(&puzzle),
+        "fp2-backtracking" => BacktrackingSolver::with_partial(2, Fp2Solver).solve_complete(&puzzle),
         "sat" => SatSolver::new(2).solve_complete(&puzzle),
         other => {
             return Err(JsValue::from_str(&format!(

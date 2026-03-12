@@ -2,7 +2,7 @@ use std::collections::VecDeque;
 
 use crate::types::{Cell, Grid, Puzzle};
 
-use super::propagation::propagate;
+use super::{Contradiction, propagation};
 
 #[derive(Debug, Clone, Copy)]
 pub(crate) enum FullyProbingMode {
@@ -10,29 +10,31 @@ pub(crate) enum FullyProbingMode {
     Fp2,
 }
 
-pub(crate) fn solve(puzzle: &Puzzle, mode: FullyProbingMode) -> Option<Grid> {
-    let mut grid = Grid::new(puzzle.width(), puzzle.height());
-
+pub(crate) fn reduce(
+    grid: &mut Grid,
+    puzzle: &Puzzle,
+    mode: FullyProbingMode,
+) -> Result<(), Contradiction> {
     loop {
-        if !propagate(&mut grid, puzzle) {
-            return None;
-        }
+        propagation::reduce(grid, puzzle)?;
 
-        let unknown_cells = collect_unknown_cells(&grid);
+        let unknown_cells = collect_unknown_cells(grid);
         if unknown_cells.is_empty() {
-            return Some(grid);
+            return Ok(());
         }
 
-        let codec = LiteralCodec::new(&grid);
+        let codec = LiteralCodec::new(grid);
         let results = match mode {
-            FullyProbingMode::Fp1 => run_fp1_round(&grid, puzzle, &unknown_cells, &codec),
-            FullyProbingMode::Fp2 => run_fp2_round(&grid, puzzle, &unknown_cells, &codec),
+            FullyProbingMode::Fp1 => run_fp1_round(grid, puzzle, &unknown_cells, &codec),
+            FullyProbingMode::Fp2 => run_fp2_round(grid, puzzle, &unknown_cells, &codec),
         };
-        let inferred = infer_literals(&results, &unknown_cells, &codec)?;
+        let Some(inferred) = infer_literals(&results, &unknown_cells, &codec) else {
+            return Err(Contradiction);
+        };
         if inferred.is_empty() {
-            return Some(grid);
+            return Ok(());
         }
-        apply_literals(&mut grid, &inferred, &codec)?;
+        apply_literals(grid, &inferred, &codec).ok_or(Contradiction)?;
     }
 }
 
@@ -147,7 +149,7 @@ fn probe(grid: &Grid, puzzle: &Puzzle, assumptions: &[usize], codec: &LiteralCod
         }
     }
 
-    if !propagate(&mut probed, puzzle) {
+    if propagation::reduce(&mut probed, puzzle).is_err() {
         return ProbeResult::Conflict;
     }
 

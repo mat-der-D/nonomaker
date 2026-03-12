@@ -88,7 +88,7 @@ function MakerPage() {
     setBusy("checking");
     try {
       const puzzle = await gridToPuzzle(grid);
-      const solution = await solveComplete(puzzle, "sat");
+      const solution = await solveComplete(puzzle, "fp2-backtracking");
       const message =
         solution.status === "unique"
           ? "一意解です。共有とエクスポートを有効化しました。"
@@ -153,7 +153,7 @@ function MakerPage() {
     if (isPuzzle(parsed)) {
       setBusy("import");
       try {
-        const solution = await solveComplete(parsed, "backtracking");
+        const solution = await solveComplete(parsed, "fp2-backtracking");
         if (solution.status !== "unique") {
           throw new Error("読み込んだ問題は一意解ではありません。");
         }

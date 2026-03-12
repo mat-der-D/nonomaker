@@ -45,9 +45,9 @@ enum Decode {
     Row(usize),
 }
 
-pub(crate) fn propagate(grid: &mut Grid, puzzle: &Puzzle) -> bool {
+pub(crate) fn reduce(grid: &mut Grid, puzzle: &Puzzle) -> Result<(), Contradiction> {
     let mut propagator = Propagator::new(grid, puzzle);
-    propagator.propagate()
+    propagator.reduce()
 }
 
 #[derive(Debug)]
@@ -109,15 +109,13 @@ impl<'a> Propagator<'a> {
         }
     }
 
-    fn propagate(&mut self) -> bool {
+    fn reduce(&mut self) -> Result<(), Contradiction> {
         while let Some(line_id) = self.dequeue() {
             if self.solved[line_id] {
                 continue;
             }
 
-            let Ok((changed_cells, solved)) = self.solve_line(line_id) else {
-                return false;
-            };
+            let (changed_cells, solved) = self.solve_line(line_id)?;
 
             if !changed_cells.is_empty() {
                 self.enqueue_cross_lines(line_id, &changed_cells);
@@ -127,7 +125,7 @@ impl<'a> Propagator<'a> {
                 self.solved[line_id] = true;
             }
         }
-        true
+        Ok(())
     }
 
     fn solve_line(&mut self, line_id: usize) -> Result<(Vec<usize>, bool), Contradiction> {
