@@ -283,6 +283,10 @@ button { cursor: pointer; }
 }
 .card .share-input:focus { outline: none; border-color: var(--amber); }
 
+.share-play-button {
+  margin-top: 10px;
+}
+
 .ratio-bar-track {
   height: 4px;
   background: var(--bg-3);

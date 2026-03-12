@@ -339,7 +339,18 @@ function MakerPage() {
           <section className="card">
             <h2>Status</h2>
             <p>{busy ? `${busy}...` : analysis.message ?? "盤面を編集して解答チェックを実行してください。"}</p>
-            {shareUrl && <input className="share-input" readOnly value={shareUrl} />}
+            {shareUrl && (
+              <>
+                <input className="share-input" readOnly value={shareUrl} />
+                <button
+                  type="button"
+                  className="btn btn-subtle share-play-button"
+                  onClick={() => window.open(shareUrl, "_blank", "noopener,noreferrer")}
+                >
+                  テストプレイ
+                </button>
+              </>
+            )}
           </section>
         </aside>
       </section>
