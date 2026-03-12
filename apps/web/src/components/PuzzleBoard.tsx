@@ -88,7 +88,8 @@ export function PuzzleBoard({
       >
         {Array.from({ length: maxColClueSlots }, (_, clueRowIndex) =>
           puzzle.col_clues.map((columnClue, columnIndex) => {
-            const clueValue = columnClue[columnClue.length - maxColClueSlots + clueRowIndex] ?? "";
+            const displayColumnClue = columnClue.length === 0 ? [0] : columnClue;
+            const clueValue = displayColumnClue[displayColumnClue.length - maxColClueSlots + clueRowIndex] ?? "";
             return (
               <span
                 key={`col-${columnIndex}-${clueRowIndex}`}
@@ -116,7 +117,8 @@ export function PuzzleBoard({
       >
         {puzzle.row_clues.flatMap((rowClue, puzzleRowIndex) =>
           Array.from({ length: maxRowClueSlots }, (_, clueColumnIndex) => {
-            const clueValue = rowClue[rowClue.length - maxRowClueSlots + clueColumnIndex] ?? "";
+            const displayRowClue = rowClue.length === 0 ? [0] : rowClue;
+            const clueValue = displayRowClue[displayRowClue.length - maxRowClueSlots + clueColumnIndex] ?? "";
             return (
               <span
                 key={`row-${puzzleRowIndex}-${clueColumnIndex}`}
