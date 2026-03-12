@@ -3,19 +3,16 @@ import type { Puzzle } from "../wasm/types";
 import { maxClueDepth } from "../utils/grid";
 
 export type PlayCell = "unknown" | "filled" | "crossed";
-export type PlayTool = "filled" | "crossed";
 
 interface PuzzleBoardProps {
   puzzle: Puzzle;
   cells: PlayCell[][];
-  tool: PlayTool;
   onCellsChange: (cells: PlayCell[][]) => void;
 }
 
 export function PuzzleBoard({
   puzzle,
   cells,
-  tool,
   onCellsChange,
 }: PuzzleBoardProps) {
   const { maxRowClueSlots, maxColClueSlots } = maxClueDepth(puzzle);
@@ -61,18 +58,11 @@ export function PuzzleBoard({
     onCellsChange(nextCells);
   }
 
-  function toggleCell(cellRowIndex: number, cellColumnIndex: number, nextCellValue: PlayCell) {
-    const nextCells = cells.map((cellRow) => [...cellRow]);
-    nextCells[cellRowIndex][cellColumnIndex] =
-      cells[cellRowIndex][cellColumnIndex] === nextCellValue ? "unknown" : nextCellValue;
-    onCellsChange(nextCells);
-  }
-
-  function resolvePointerTool(isSecondaryAction: boolean) {
+  function resolveNextPlayCell(currentCell: PlayCell, isSecondaryAction: boolean): PlayCell {
     if (isSecondaryAction) {
-      return tool === "filled" ? "crossed" : "filled";
+      return currentCell === "filled" ? "unknown" : "crossed";
     }
-    return tool;
+    return currentCell === "filled" ? "unknown" : "filled";
   }
 
   return (
@@ -144,9 +134,9 @@ export function PuzzleBoard({
               type="button"
               className={["cell", `play-cell-${cellValue}`].join(" ")}
               onPointerDown={(event) => {
-                const nextCellValue = resolvePointerTool(event.button === 2);
+                const nextCellValue = resolveNextPlayCell(cellValue, event.button === 2);
                 setActiveDrag({ active: true, value: nextCellValue });
-                toggleCell(cellRowIndex, cellColumnIndex, nextCellValue);
+                overwriteCell(cellRowIndex, cellColumnIndex, nextCellValue);
               }}
               onPointerEnter={() => {
                 if (!activeDrag.active) {
@@ -156,7 +146,6 @@ export function PuzzleBoard({
               }}
               onContextMenu={(event) => {
                 event.preventDefault();
-                toggleCell(cellRowIndex, cellColumnIndex, resolvePointerTool(true));
               }}
               aria-label={`cell ${cellRowIndex + 1}-${cellColumnIndex + 1}`}
             >

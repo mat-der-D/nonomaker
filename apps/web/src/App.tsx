@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { EditorGrid } from "./components/EditorGrid";
-import { PuzzleBoard, type PlayCell, type PlayTool } from "./components/PuzzleBoard";
+import { PuzzleBoard, type PlayCell } from "./components/PuzzleBoard";
 import { useWasm } from "./hooks/useWasm";
 import { createGrid, equalGrid, puzzleDimensions } from "./utils/grid";
 import {
@@ -692,7 +692,6 @@ function PlayPage({ id }: { id: string }) {
   const [solutionGrid, setSolutionGrid] = useState<Grid | null>(null);
   const [puzzle, setPuzzle] = useState<Puzzle | null>(null);
   const [playCells, setPlayCells] = useState<PlayCell[][] | null>(null);
-  const [activeTool, setActiveTool] = useState<PlayTool>("filled");
   const [statusMessage, setStatusMessage] = useState("問題を読み込み中...");
 
   useEffect(() => {
@@ -706,7 +705,6 @@ function PlayPage({ id }: { id: string }) {
           setSolutionGrid(decodedSolutionGrid);
           setPuzzle(nextPuzzle);
           setPlayCells(createPlayGrid(width, height));
-          setActiveTool("filled");
           setStatusMessage("左クリックで入力、右クリックで反対の記号を置けます。");
         }
       } catch (error) {
@@ -763,22 +761,6 @@ function PlayPage({ id }: { id: string }) {
       <section className="play-layout">
         <div className="play-main">
           <div className="play-toolbar card">
-            <div className="play-tools" role="group" aria-label="play tools">
-              <button
-                type="button"
-                className={`btn ${activeTool === "filled" ? "btn-primary" : "btn-subtle"}`}
-                onClick={() => setActiveTool("filled")}
-              >
-                塗る
-              </button>
-              <button
-                type="button"
-                className={`btn ${activeTool === "crossed" ? "btn-primary" : "btn-subtle"}`}
-                onClick={() => setActiveTool("crossed")}
-              >
-                × を置く
-              </button>
-            </div>
             <div className="play-actions">
               <button type="button" className="btn btn-ghost" onClick={resetBoard}>
                 リセット
@@ -789,7 +771,6 @@ function PlayPage({ id }: { id: string }) {
             <PuzzleBoard
               puzzle={puzzle}
               cells={playCells}
-              tool={activeTool}
               onCellsChange={handlePlayCellsChange}
             />
           </div>
@@ -820,7 +801,7 @@ function PlayPage({ id }: { id: string }) {
               <strong>{playStats.crossed}</strong>
             </div>
           </div>
-          <p className="play-hint">左クリックは現在ツール、右クリックは反対の入力です。</p>
+          <p className="play-hint">左クリックで塗り、右クリックで ×。同じ状態をもう一度入力すると Blank に戻ります。</p>
           <button type="button" className="btn btn-subtle" onClick={() => navigator.clipboard.writeText(window.location.href)}>
             📋 URL をコピー
           </button>

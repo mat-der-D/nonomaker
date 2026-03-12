@@ -10,8 +10,6 @@ interface EditorGridProps {
   onMarksChange?: (next: boolean[][]) => void;
 }
 
-type PaintMode = "fill" | "blank";
-
 export function EditorGrid({
   grid,
   onChange,
@@ -20,13 +18,12 @@ export function EditorGrid({
   marks,
   onMarksChange,
 }: EditorGridProps) {
-  const [paintMode, setPaintMode] = useState<PaintMode>("fill");
-  const [isPointerDown, setPointerDown] = useState(false);
+  const [dragPaintValue, setDragPaintValue] = useState<boolean | null>(null);
   const cellSize = useMemo(() => Math.max(14, Math.floor(560 / Math.max(grid.length, grid[0]?.length ?? 1))), [grid]);
 
-  function paint(row: number, col: number, mode: PaintMode) {
+  function paint(row: number, col: number, nextValue: boolean) {
     const next = grid.map((cells) => [...cells]);
-    next[row][col] = mode === "fill";
+    next[row][col] = nextValue;
     onChange(next);
   }
 
@@ -48,28 +45,10 @@ export function EditorGrid({
 
   return (
     <div className="grid-shell">
-      {!playable && !readOnly && (
-        <div className="paint-switch" role="group" aria-label="paint mode">
-          <button
-            className={paintMode === "fill" ? "active" : ""}
-            onClick={() => setPaintMode("fill")}
-            type="button"
-          >
-            Fill
-          </button>
-          <button
-            className={paintMode === "blank" ? "active" : ""}
-            onClick={() => setPaintMode("blank")}
-            type="button"
-          >
-            Erase
-          </button>
-        </div>
-      )}
       <div
         className={`editor-grid ${playable ? "play-mode" : ""}`}
         style={{ gridTemplateColumns: `repeat(${grid[0]?.length ?? 0}, ${cellSize}px)` }}
-        onPointerLeave={() => setPointerDown(false)}
+        onPointerLeave={() => setDragPaintValue(null)}
       >
         {grid.map((row, rowIndex) =>
           row.map((cell, colIndex) => (
@@ -85,28 +64,28 @@ export function EditorGrid({
                 if (playable) {
                   togglePlayable(rowIndex, colIndex, true);
                 } else {
-                  paint(rowIndex, colIndex, "blank");
+                  paint(rowIndex, colIndex, false);
                 }
               }}
               onPointerDown={(event) => {
-                setPointerDown(true);
                 if (readOnly) {
                   return;
                 }
                 if (playable) {
                   togglePlayable(rowIndex, colIndex, event.button === 2);
                 } else {
-                  const mode = event.button === 2 ? "blank" : paintMode;
-                  paint(rowIndex, colIndex, mode);
+                  const nextValue = event.button === 2 ? false : true;
+                  setDragPaintValue(nextValue);
+                  paint(rowIndex, colIndex, nextValue);
                 }
               }}
               onPointerEnter={() => {
-                if (readOnly || !isPointerDown || playable) {
+                if (readOnly || dragPaintValue === null || playable) {
                   return;
                 }
-                paint(rowIndex, colIndex, paintMode);
+                paint(rowIndex, colIndex, dragPaintValue);
               }}
-              onPointerUp={() => setPointerDown(false)}
+              onPointerUp={() => setDragPaintValue(null)}
               aria-label={`cell ${rowIndex + 1}-${colIndex + 1}`}
             >
               {marks?.[rowIndex]?.[colIndex] ? "×" : ""}

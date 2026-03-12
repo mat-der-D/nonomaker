@@ -295,36 +295,10 @@ button { cursor: pointer; }
   transition: width 0.4s ease;
 }
 
-/* ── Paint switch ──────────────────────────────────────────── */
 .grid-shell {
   display: grid;
   gap: 12px;
   justify-items: center;
-}
-
-.paint-switch {
-  display: inline-flex;
-  gap: 2px;
-  background: var(--bg-2);
-  border: 1px solid var(--border-2);
-  border-radius: 8px;
-  padding: 3px;
-}
-
-.paint-switch button {
-  border: 0;
-  background: transparent;
-  border-radius: 6px;
-  padding: 5px 14px;
-  color: var(--text-2);
-  font-size: 0.8rem;
-  font-weight: 500;
-  transition: background 0.12s, color 0.12s;
-}
-
-.paint-switch .active {
-  background: var(--amber);
-  color: #0d1117;
 }
 
 /* ── Editor grid ───────────────────────────────────────────── */
@@ -731,7 +705,6 @@ button { cursor: pointer; }
   flex-wrap: wrap;
 }
 
-.play-tools,
 .play-actions {
   display: flex;
   gap: 8px;
