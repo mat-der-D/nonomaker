@@ -260,105 +260,117 @@ function MakerPage() {
       </header>
 
       <section className="toolbar">
-        <div className="toolbar-group">
-          <div className="size-fields">
-            <input
-              type="number"
-              min={5}
-              max={50}
-              value={sizeDraft.width}
-              onChange={(event) => setSizeDraft((current) => ({ ...current, width: event.target.value }))}
-              onBlur={() =>
-                setSizeDraft((current) => ({ ...current, width: String(clampSize(current.width)) }))
-              }
-            />
-            <span className="toolbar-x">×</span>
-            <input
-              type="number"
-              min={5}
-              max={50}
-              value={sizeDraft.height}
-              onChange={(event) => setSizeDraft((current) => ({ ...current, height: event.target.value }))}
-              onBlur={() =>
-                setSizeDraft((current) => ({ ...current, height: String(clampSize(current.height)) }))
-              }
-            />
+        <div className="toolbar-section">
+          <p className="toolbar-title">Canvas</p>
+          <div className="toolbar-group">
+            <div className="size-fields">
+              <input
+                type="number"
+                min={5}
+                max={50}
+                value={sizeDraft.width}
+                onChange={(event) => setSizeDraft((current) => ({ ...current, width: event.target.value }))}
+                onBlur={() =>
+                  setSizeDraft((current) => ({ ...current, width: String(clampSize(current.width)) }))
+                }
+              />
+              <span className="toolbar-x">×</span>
+              <input
+                type="number"
+                min={5}
+                max={50}
+                value={sizeDraft.height}
+                onChange={(event) => setSizeDraft((current) => ({ ...current, height: event.target.value }))}
+                onBlur={() =>
+                  setSizeDraft((current) => ({ ...current, height: String(clampSize(current.height)) }))
+                }
+              />
+            </div>
+            <button type="button" className="btn btn-subtle" onClick={resizeGrid}>
+              サイズ適用
+            </button>
+            <button type="button" className="btn btn-ghost" onClick={() => window.confirm("盤面をクリアしますか？") && commit(createGrid(grid[0].length, grid.length))}>
+              クリア
+            </button>
           </div>
-          <button type="button" className="btn btn-subtle" onClick={resizeGrid}>
-            サイズ適用
-          </button>
         </div>
 
-        <div className="toolbar-sep" />
-
-        <div className="toolbar-group">
-          <button type="button" className="btn btn-ghost" onClick={() => history.length && (setFuture((current) => [grid, ...current]), setGrid(history[history.length - 1]), setHistory((current) => current.slice(0, -1)))} disabled={history.length === 0}>
-            ↩ Undo
-          </button>
-          <button type="button" className="btn btn-ghost" onClick={() => future.length && (setHistory((current) => [...current, grid]), setGrid(future[0]), setFuture((current) => current.slice(1)))} disabled={future.length === 0}>
-            ↪ Redo
-          </button>
-          <button type="button" className="btn btn-ghost" onClick={() => window.confirm("盤面をクリアしますか？") && commit(createGrid(grid[0].length, grid.length))}>
-            🗑 クリア
-          </button>
+        <div className="toolbar-section">
+          <p className="toolbar-title">Import</p>
+          <div className="toolbar-group">
+            <button
+              type="button"
+              className="btn btn-subtle"
+              onClick={() => setImageModalOpen(true)}
+            >
+              画像変換
+            </button>
+            <label className="file-button btn btn-subtle">
+              JSON 読み込み
+              <input type="file" accept=".json,application/json" onChange={(event) => event.target.files?.[0] && void importJson(event.target.files[0])} />
+            </label>
+          </div>
         </div>
 
-        <div className="toolbar-sep" />
-
-        <div className="toolbar-group">
-          <button
-            type="button"
-            className="btn btn-subtle"
-            onClick={() => setImageModalOpen(true)}
-          >
-            🖼 画像変換
-          </button>
-          <label className="file-button btn btn-subtle">
-            📂 JSON 読み込み
-            <input type="file" accept=".json,application/json" onChange={(event) => event.target.files?.[0] && void importJson(event.target.files[0])} />
-          </label>
-          <button type="button" className="btn btn-subtle" onClick={() => void exportArtifacts()} disabled={!exportAllowed}>
-            ⬇ ファイル出力
-          </button>
-          <button type="button" className="btn btn-primary" onClick={() => void generateShare()} disabled={!exportAllowed}>
-            🔗 共有
-          </button>
-        </div>
-
-        <div className="toolbar-sep" />
-
-        <div className="toolbar-group">
-          <button type="button" className="btn btn-subtle" onClick={() => void runCheck()} disabled={busy !== null}>
-            ✔ 解答チェック
-          </button>
-          <button type="button" className="btn btn-subtle" onClick={() => void runDifficultyCheck()} disabled={busy !== null}>
-            📊 難易度チェック
-          </button>
+        <div className="toolbar-section toolbar-section-wide">
+          <p className="toolbar-title">Export</p>
+          <div className="toolbar-group">
+            <button type="button" className="btn btn-subtle" onClick={() => void exportArtifacts()} disabled={!exportAllowed}>
+              ファイル出力
+            </button>
+            <button type="button" className="btn btn-ghost" onClick={() => void generateShare()} disabled={!exportAllowed}>
+              共有
+            </button>
+          </div>
         </div>
       </section>
 
       <section className="content">
         <div className="editor-panel maker-editor-panel">
           <div className="maker-workbench">
-            <aside className="toolbox card">
-              <div className="toolbox-header">
-                <h2>Tools</h2>
-                <p>{activeTool.label}{tool === "fill" ? " / 連結塗り" : ""}</p>
-              </div>
-              <div className="toolbox-grid" role="toolbar" aria-label="drawing tools">
-                {toolItems.map((item) => (
-                  <button
-                    key={item.id}
-                    type="button"
-                    className={`tool-button ${item.id === tool ? "active" : ""}`}
-                    onClick={() => setTool(item.id)}
-                    aria-pressed={item.id === tool}
-                    title={`${item.label}: ${item.hint}`}
-                  >
-                    <span className="tool-button-icon" aria-hidden="true">{item.icon}</span>
+            <aside className="maker-sidebar">
+              <section className="tool-actions card">
+                <div className="tool-actions-row">
+                  <button type="button" className="btn btn-ghost tool-action-btn" onClick={() => history.length && (setFuture((current) => [grid, ...current]), setGrid(history[history.length - 1]), setHistory((current) => current.slice(0, -1)))} disabled={history.length === 0}>
+                    ↩ Undo
                   </button>
-                ))}
-              </div>
+                  <button type="button" className="btn btn-ghost tool-action-btn" onClick={() => future.length && (setHistory((current) => [...current, grid]), setGrid(future[0]), setFuture((current) => current.slice(1)))} disabled={future.length === 0}>
+                    ↪ Redo
+                  </button>
+                </div>
+              </section>
+
+              <section className="toolbox card">
+                <div className="toolbox-header">
+                  <h2>Tools</h2>
+                  <p>{activeTool.label}{tool === "fill" ? " / 連結塗り" : ""}</p>
+                </div>
+                <div className="toolbox-grid" role="toolbar" aria-label="drawing tools">
+                  {toolItems.map((item) => (
+                    <button
+                      key={item.id}
+                      type="button"
+                      className={`tool-button ${item.id === tool ? "active" : ""}`}
+                      onClick={() => setTool(item.id)}
+                      aria-pressed={item.id === tool}
+                      title={`${item.label}: ${item.hint}`}
+                    >
+                      <span className="tool-button-icon" aria-hidden="true">{item.icon}</span>
+                    </button>
+                  ))}
+                </div>
+              </section>
+
+              <section className="tool-actions card">
+                <div className="tool-actions-row">
+                  <button type="button" className="btn btn-primary tool-action-btn" onClick={() => void runCheck()} disabled={busy !== null}>
+                    解答チェック
+                  </button>
+                  <button type="button" className="btn btn-subtle tool-action-btn" onClick={() => void runDifficultyCheck()} disabled={busy !== null}>
+                    難易度チェック
+                  </button>
+                </div>
+              </section>
             </aside>
 
             <EditorGrid

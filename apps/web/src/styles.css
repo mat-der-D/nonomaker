@@ -115,29 +115,45 @@ button { cursor: pointer; }
 
 /* ── Shared controls ───────────────────────────────────────── */
 .toolbar {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 12px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  align-items: stretch;
+  gap: 10px;
+  padding: 12px;
   background: #1e2a3e;
   border: 1px solid rgba(255,255,255,0.14);
   border-radius: 10px;
 }
 
+.toolbar-section {
+  display: grid;
+  gap: 8px;
+  align-content: start;
+  padding: 10px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 8px;
+}
+
+.toolbar-section-wide {
+  min-width: 0;
+}
+
+.toolbar-title {
+  margin: 0;
+  font-family: "DM Mono", monospace;
+  font-size: 0.68rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--amber);
+}
+
 .toolbar-group {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
   flex-wrap: wrap;
-}
-
-.toolbar-sep {
-  width: 1px;
-  height: 24px;
-  background: rgba(255,255,255,0.2);
-  margin: 0 4px;
-  flex-shrink: 0;
+  min-width: 0;
 }
 
 .size-fields input[type="number"] {
@@ -252,6 +268,28 @@ button { cursor: pointer; }
   align-items: start;
 }
 
+.maker-sidebar {
+  display: grid;
+  gap: 10px;
+  align-content: start;
+  position: sticky;
+  top: 24px;
+}
+
+.tool-actions {
+  padding: 10px;
+}
+
+.tool-actions-row {
+  display: grid;
+  gap: 6px;
+}
+
+.tool-action-btn {
+  width: 100%;
+  justify-content: center;
+}
+
 .side-panel {
   display: grid;
   gap: 12px;
@@ -323,8 +361,6 @@ button { cursor: pointer; }
 
 .toolbox {
   padding: 12px;
-  position: sticky;
-  top: 24px;
 }
 
 .toolbox-header h2 {
@@ -874,6 +910,9 @@ button { cursor: pointer; }
   .content, .play-layout {
     grid-template-columns: 1fr;
   }
+  .toolbar {
+    grid-template-columns: 1fr;
+  }
   .image-modal-body, .preview-panels {
     grid-template-columns: 1fr;
   }
@@ -881,6 +920,9 @@ button { cursor: pointer; }
     grid-template-columns: 1fr;
   }
   .toolbox {
+    position: static;
+  }
+  .maker-sidebar {
     position: static;
   }
   .toolbox-grid {
