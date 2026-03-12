@@ -229,6 +229,18 @@ button { cursor: pointer; }
 }
 .btn-subtle:hover { background: #32425e; color: var(--text); }
 
+.btn-danger {
+  background: rgba(190, 44, 44, 0.22);
+  border-color: rgba(248, 81, 73, 0.5);
+  color: #ffb4af;
+}
+
+.btn-danger:hover {
+  background: rgba(190, 44, 44, 0.34);
+  border-color: rgba(248, 81, 73, 0.72);
+  color: #ffd6d3;
+}
+
 .btn:disabled { opacity: 0.32; cursor: not-allowed; pointer-events: none; }
 
 /* File button wrapper */

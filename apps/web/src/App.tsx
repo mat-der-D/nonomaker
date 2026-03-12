@@ -434,7 +434,7 @@ function MakerPage() {
               />
               <strong className="inline-unit">%</strong>
             </label>
-            <button type="button" className="btn btn-ghost" onClick={() => window.confirm("盤面をクリアしますか？") && commit(createGrid(grid[0].length, grid.length))}>
+            <button type="button" className="btn btn-danger" onClick={() => window.confirm("盤面をクリアしますか？") && commit(createGrid(grid[0].length, grid.length))}>
               クリア
             </button>
           </div>
