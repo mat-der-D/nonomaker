@@ -179,7 +179,7 @@ function MakerPage() {
       <header className="topbar">
         <div>
           <p className="eyebrow">Nonogram puzzle maker</p>
-          <h1>NonoMaker</h1>
+          <h1>Nono<span>Maker</span></h1>
         </div>
         <a className="ghost-link" href="/maker">
           /maker
@@ -195,7 +195,7 @@ function MakerPage() {
             value={size.width}
             onChange={(event) => setSize((current) => ({ ...current, width: clampSize(event.target.value) }))}
           />
-          <span>×</span>
+          <span className="toolbar-x">×</span>
           <input
             type="number"
             min={5}
@@ -203,44 +203,49 @@ function MakerPage() {
             value={size.height}
             onChange={(event) => setSize((current) => ({ ...current, height: clampSize(event.target.value) }))}
           />
-          <button type="button" onClick={resizeGrid}>
+          <button type="button" className="btn btn-subtle" onClick={resizeGrid}>
             適用
           </button>
           <button
             type="button"
+            className="btn btn-subtle"
             onClick={() => setImageModalOpen(true)}
           >
-            画像変換
+            🖼 画像変換
           </button>
-          <label className="file-button">
+          <label className="file-button btn btn-subtle">
             読み込み
             <input type="file" accept=".json,application/json" onChange={(event) => event.target.files?.[0] && void importJson(event.target.files[0])} />
           </label>
         </div>
 
+        <div className="toolbar-sep" />
+
         <div className="toolbar-group">
-          <button type="button" onClick={() => history.length && (setFuture((current) => [grid, ...current]), setGrid(history[history.length - 1]), setHistory((current) => current.slice(0, -1)))} disabled={history.length === 0}>
-            Undo
+          <button type="button" className="btn btn-ghost" onClick={() => history.length && (setFuture((current) => [grid, ...current]), setGrid(history[history.length - 1]), setHistory((current) => current.slice(0, -1)))} disabled={history.length === 0}>
+            ← Undo
           </button>
-          <button type="button" onClick={() => future.length && (setHistory((current) => [...current, grid]), setGrid(future[0]), setFuture((current) => current.slice(1)))} disabled={future.length === 0}>
-            Redo
+          <button type="button" className="btn btn-ghost" onClick={() => future.length && (setHistory((current) => [...current, grid]), setGrid(future[0]), setFuture((current) => current.slice(1)))} disabled={future.length === 0}>
+            Redo →
           </button>
-          <button type="button" onClick={() => window.confirm("盤面をクリアしますか？") && commit(createGrid(grid[0].length, grid.length))}>
-            Clear
+          <button type="button" className="btn btn-ghost" onClick={() => window.confirm("盤面をクリアしますか？") && commit(createGrid(grid[0].length, grid.length))}>
+            🗑 Clear
           </button>
         </div>
 
+        <div className="toolbar-sep" />
+
         <div className="toolbar-group">
-          <button type="button" onClick={() => void runCheck()} disabled={busy !== null}>
+          <button type="button" className="btn btn-subtle" onClick={() => void runCheck()} disabled={busy !== null}>
             解答チェック
           </button>
-          <button type="button" onClick={() => void runCheck()} disabled={busy !== null}>
+          <button type="button" className="btn btn-subtle" onClick={() => void runCheck()} disabled={busy !== null}>
             難易度チェック
           </button>
-          <button type="button" onClick={() => void exportArtifacts()} disabled={!exportAllowed}>
+          <button type="button" className="btn btn-subtle" onClick={() => void exportArtifacts()} disabled={!exportAllowed}>
             ファイル出力
           </button>
-          <button type="button" onClick={() => void generateShare()} disabled={!exportAllowed}>
+          <button type="button" className="btn btn-primary" onClick={() => void generateShare()} disabled={!exportAllowed}>
             共有
           </button>
         </div>
@@ -263,9 +268,14 @@ function MakerPage() {
             <h2>Status</h2>
             <p>{busy ? `${busy}...` : analysis.message ?? "盤面を編集して解答チェックを実行してください。"}</p>
             {analysis.partialRatio !== null && (
-              <p>論理確定率: {Math.round(analysis.partialRatio * 100)}%</p>
+              <>
+                <p>論理確定率: {Math.round(analysis.partialRatio * 100)}%</p>
+                <div className="ratio-bar-track">
+                  <div className="ratio-bar-fill" style={{ width: `${Math.round(analysis.partialRatio * 100)}%` }} />
+                </div>
+              </>
             )}
-            {shareUrl && <input readOnly value={shareUrl} />}
+            {shareUrl && <input className="share-input" readOnly value={shareUrl} />}
           </section>
         </aside>
       </section>
@@ -357,14 +367,14 @@ function ImageConvertModal({
             <p className="eyebrow">Image Convert</p>
             <h2>画像からグリッドを作成</h2>
           </div>
-          <button type="button" className="ghost-button" onClick={onClose}>
-            閉じる
+          <button type="button" className="btn btn-ghost" onClick={onClose}>
+            閉じる ×
           </button>
         </header>
 
         <div className="image-modal-body">
           <div className="image-preview-stack">
-            <label className="file-button inline-file-button">
+            <label className="file-button inline-file-button btn btn-subtle">
               画像を選択
               <input
                 type="file"
@@ -459,10 +469,10 @@ function ImageConvertModal({
         <footer className="modal-footer">
           <p className="modal-status">{status}</p>
           <div className="toolbar-group">
-            <button type="button" className="ghost-button" onClick={onClose}>
+            <button type="button" className="btn btn-ghost" onClick={onClose}>
               キャンセル
             </button>
-            <button type="button" onClick={() => preview && onApply(preview)} disabled={!preview}>
+            <button type="button" className="btn btn-primary" onClick={() => preview && onApply(preview)} disabled={!preview}>
               適用
             </button>
           </div>
@@ -576,10 +586,10 @@ function PlayPage({ id }: { id: string }) {
       <header className="topbar">
         <div>
           <p className="eyebrow">Solve from shared URL</p>
-          <h1>NonoMaker Play</h1>
+          <h1>Nono<span>Maker</span> Play</h1>
         </div>
         <a className="ghost-link" href="/maker">
-          maker に戻る
+          ← maker に戻る
         </a>
       </header>
       <section className="play-layout">
@@ -593,7 +603,7 @@ function PlayPage({ id }: { id: string }) {
         <div className="card">
           <h2>Play</h2>
           <p>{message}</p>
-          <button type="button" onClick={() => navigator.clipboard.writeText(window.location.href)}>
+          <button type="button" className="btn btn-subtle" onClick={() => navigator.clipboard.writeText(window.location.href)}>
             URL をコピー
           </button>
         </div>
