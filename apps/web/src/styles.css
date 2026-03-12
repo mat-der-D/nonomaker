@@ -463,8 +463,7 @@ button { cursor: pointer; }
 
 .card p:last-child { margin-bottom: 0; }
 
-.card .share-input {
-  margin-top: 10px;
+.share-input {
   width: 100%;
   background: var(--bg-2);
   border: 1px solid var(--border-2);
@@ -474,11 +473,7 @@ button { cursor: pointer; }
   font-family: "DM Mono", monospace;
   font-size: 0.75rem;
 }
-.card .share-input:focus { outline: none; border-color: var(--amber); }
-
-.share-play-button {
-  margin-top: 10px;
-}
+.share-input:focus { outline: none; border-color: var(--amber); }
 
 .ratio-bar-track {
   height: 4px;
@@ -796,6 +791,14 @@ button { cursor: pointer; }
 
 .export-modal {
   width: min(560px, 100%);
+}
+
+.share-modal {
+  width: min(560px, 100%);
+}
+
+.share-modal-body {
+  margin-top: 18px;
 }
 
 .export-modal-body {

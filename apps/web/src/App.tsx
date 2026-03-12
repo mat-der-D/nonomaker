@@ -23,7 +23,6 @@ interface AnalysisState {
 }
 
 interface CheckDialogState {
-  open: boolean;
   status: "idle" | "running" | "done" | "error" | "cancelled";
   message: string;
   solution: Solution | null;
@@ -34,6 +33,11 @@ type ExportFormat = "puzzle-png" | "puzzle-solution-png" | "puzzle-json" | "solu
 interface ExportDialogState {
   open: boolean;
   selected: ExportFormat;
+}
+
+interface ShareDialogState {
+  open: boolean;
+  url: string;
 }
 
 const defaultImageParams: ImageToGridParams = {
@@ -90,15 +94,17 @@ function MakerPage() {
     message: null,
   });
   const [busy, setBusy] = useState<string | null>(null);
-  const [shareUrl, setShareUrl] = useState("");
   const [imageModalOpen, setImageModalOpen] = useState(false);
   const [exportDialog, setExportDialog] = useState<ExportDialogState>({
     open: false,
     selected: "puzzle-png",
   });
+  const [shareDialog, setShareDialog] = useState<ShareDialogState>({
+    open: false,
+    url: "",
+  });
   const [selectedSolutionIndex, setSelectedSolutionIndex] = useState(0);
   const [checkDialog, setCheckDialog] = useState<CheckDialogState>({
-    open: false,
     status: "idle",
     message: "",
     solution: null,
@@ -156,7 +162,6 @@ function MakerPage() {
     const runId = checkRunRef.current;
     setBusy("checking");
     setCheckDialog({
-      open: true,
       status: "running",
       message: "解答を解析しています。しばらくお待ちください。",
       solution: null,
@@ -175,7 +180,6 @@ function MakerPage() {
             : "解なしです。";
       setAnalysis({ solution, message });
       setCheckDialog({
-        open: true,
         status: "done",
         message,
         solution,
@@ -186,7 +190,6 @@ function MakerPage() {
       }
       setAnalysis({ solution: null, message: String(error) });
       setCheckDialog({
-        open: true,
         status: "error",
         message: String(error),
         solution: null,
@@ -203,7 +206,6 @@ function MakerPage() {
     terminateWorker();
     setBusy(null);
     setCheckDialog({
-      open: true,
       status: "cancelled",
       message: "解答チェックを中止しました。",
       solution: null,
@@ -215,7 +217,7 @@ function MakerPage() {
     try {
       const id = await gridToId(grid);
       const url = `${window.location.origin}/play/${id}`;
-      setShareUrl(url);
+      setShareDialog({ open: true, url });
       await navigator.clipboard.writeText(url);
       setAnalysis((current) => ({
         ...current,
@@ -588,18 +590,6 @@ function MakerPage() {
                 </div>
               </div>
             ) : null}
-            {shareUrl && (
-              <>
-                <input className="share-input" readOnly value={shareUrl} />
-                <button
-                  type="button"
-                  className="btn btn-subtle share-play-button"
-                  onClick={() => window.open(shareUrl, "_blank", "noopener,noreferrer")}
-                >
-                  テストプレイ
-                </button>
-              </>
-            )}
           </section>
         </aside>
       </section>
@@ -635,94 +625,13 @@ function MakerPage() {
           }}
         />
       )}
-    </div>
-  );
-}
 
-function CheckResultModal({
-  state,
-  onCancel,
-  onClose,
-}: {
-  state: CheckDialogState;
-  onCancel: () => void;
-  onClose: () => void;
-}) {
-  const isMultiple = state.solution?.status === "multiple";
-  const previewBoxSize = isMultiple ? 240 : 300;
-  const visibleSolutions =
-    isMultiple
-      ? state.solution.grids.slice(0, 2)
-      : state.solution?.grids ?? [];
-  const icon =
-    state.status === "running"
-      ? "◌"
-      : state.status === "cancelled"
-        ? "■"
-        : state.status === "error" || isMultiple
-          ? "×"
-          : "✓";
-
-  return (
-    <div className="modal-backdrop" role="presentation">
-      <section className="modal-card check-modal" onClick={(event) => event.stopPropagation()}>
-        <header className="modal-header">
-          <div>
-            <p className="eyebrow">Answer Check</p>
-            <h2>解答チェック</h2>
-          </div>
-        </header>
-
-        <div className="check-modal-body">
-          <div className={`check-status-panel ${visibleSolutions.length === 1 ? "compact" : ""}`}>
-            <div className={`check-status-icon ${state.status} ${isMultiple ? "negative" : ""}`}>
-              {icon}
-            </div>
-            <div>
-              <p className="check-status-label">
-                {state.status === "running"
-                  ? "解析中"
-                  : state.status === "done"
-                    ? "解析完了"
-                    : state.status === "cancelled"
-                      ? "中止"
-                      : "エラー"}
-              </p>
-              <p className="modal-status">{state.message}</p>
-            </div>
-          </div>
-
-          {visibleSolutions.length > 0 && (
-            <div className={`check-solution-stack ${visibleSolutions.length === 1 ? "single" : ""}`}>
-              {visibleSolutions.map((grid, index) => (
-                <div key={index} className="preview-panel check-solution-panel">
-                  <h3>{isMultiple ? `Solution ${index + 1}` : "Solution"}</h3>
-                  <StaticGridPreview grid={grid} maxSide={previewBoxSize} />
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        <footer className="modal-footer">
-          <p className="modal-status">
-            {isMultiple && state.solution.grids.length > 2
-              ? `先頭 2 件を表示中 / 全 ${state.solution.grids.length} 件`
-              : " "}
-          </p>
-          <div className="toolbar-group">
-            {state.status === "running" ? (
-              <button type="button" className="btn btn-ghost" onClick={onCancel}>
-                中止
-              </button>
-            ) : (
-              <button type="button" className="btn btn-primary" onClick={onClose}>
-                閉じる
-              </button>
-            )}
-          </div>
-        </footer>
-      </section>
+      {shareDialog.open && (
+        <ShareModal
+          url={shareDialog.url}
+          onClose={() => setShareDialog((current) => ({ ...current, open: false }))}
+        />
+      )}
     </div>
   );
 }
@@ -748,9 +657,6 @@ function ExportFormatModal({
             <p className="eyebrow">Export</p>
             <h2>保存形式を選択</h2>
           </div>
-          <button type="button" className="btn btn-ghost" onClick={onClose}>
-            閉じる ×
-          </button>
         </header>
 
         <div className="export-modal-body">
@@ -778,6 +684,47 @@ function ExportFormatModal({
             </button>
             <button type="button" className="btn btn-primary" onClick={onConfirm}>
               保存
+            </button>
+          </div>
+        </footer>
+      </section>
+    </div>
+  );
+}
+
+function ShareModal({
+  url,
+  onClose,
+}: {
+  url: string;
+  onClose: () => void;
+}) {
+  return (
+    <div className="modal-backdrop" role="presentation" onClick={onClose}>
+      <section className="modal-card share-modal" onClick={(event) => event.stopPropagation()}>
+        <header className="modal-header">
+          <div>
+            <p className="eyebrow">Share</p>
+            <h2>共有URL</h2>
+          </div>
+        </header>
+
+        <div className="share-modal-body">
+          <input className="share-input" readOnly value={url} />
+        </div>
+
+        <footer className="modal-footer">
+          <p className="modal-status">クリップボードにコピー済みです。</p>
+          <div className="toolbar-group">
+            <button
+              type="button"
+              className="btn btn-ghost"
+              onClick={() => window.open(url, "_blank", "noopener,noreferrer")}
+            >
+              テストプレイ
+            </button>
+            <button type="button" className="btn btn-primary" onClick={onClose}>
+              閉じる
             </button>
           </div>
         </footer>
@@ -872,9 +819,6 @@ function ImageConvertModal({
             <p className="eyebrow">Image To Board</p>
             <h2>画像から盤面作成</h2>
           </div>
-          <button type="button" className="btn btn-ghost" onClick={onClose}>
-            閉じる ×
-          </button>
         </header>
 
         <div className="image-modal-body">
