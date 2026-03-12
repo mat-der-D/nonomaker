@@ -264,27 +264,33 @@ function MakerPage() {
           <p className="toolbar-title">Canvas</p>
           <div className="toolbar-group">
             <div className="size-fields">
-              <input
-                type="number"
-                min={5}
-                max={50}
-                value={sizeDraft.width}
-                onChange={(event) => setSizeDraft((current) => ({ ...current, width: event.target.value }))}
-                onBlur={() =>
-                  setSizeDraft((current) => ({ ...current, width: String(clampSize(current.width)) }))
-                }
-              />
+              <label className="inline-number-field">
+                <span>縦</span>
+                <input
+                  type="number"
+                  min={5}
+                  max={50}
+                  value={sizeDraft.height}
+                  onChange={(event) => setSizeDraft((current) => ({ ...current, height: event.target.value }))}
+                  onBlur={() =>
+                    setSizeDraft((current) => ({ ...current, height: String(clampSize(current.height)) }))
+                  }
+                />
+              </label>
               <span className="toolbar-x">×</span>
-              <input
-                type="number"
-                min={5}
-                max={50}
-                value={sizeDraft.height}
-                onChange={(event) => setSizeDraft((current) => ({ ...current, height: event.target.value }))}
-                onBlur={() =>
-                  setSizeDraft((current) => ({ ...current, height: String(clampSize(current.height)) }))
-                }
-              />
+              <label className="inline-number-field">
+                <span>横</span>
+                <input
+                  type="number"
+                  min={5}
+                  max={50}
+                  value={sizeDraft.width}
+                  onChange={(event) => setSizeDraft((current) => ({ ...current, width: event.target.value }))}
+                  onBlur={() =>
+                    setSizeDraft((current) => ({ ...current, width: String(clampSize(current.width)) }))
+                  }
+                />
+              </label>
             </div>
             <button type="button" className="btn btn-subtle" onClick={resizeGrid}>
               サイズ適用
@@ -406,7 +412,7 @@ function MakerPage() {
           <section className="card">
             <h2>Editor</h2>
             <p>現在のツール: {activeTool.label}</p>
-            <p>盤面サイズ: {size.width} × {size.height}</p>
+            <p>盤面サイズ: {size.height} × {size.width}</p>
           </section>
         </aside>
       </section>
@@ -653,6 +659,40 @@ function ImageConvertModal({
           </div>
 
           <div className="slider-panel">
+            <div className="dimension-fields">
+              <label className="number-field">
+                <span>縦</span>
+                <input
+                  type="number"
+                  min={5}
+                  max={50}
+                  step={1}
+                  value={params.grid_height}
+                  onChange={(event) =>
+                    setParams((current) => ({
+                      ...current,
+                      grid_height: clampSize(event.target.value),
+                    }))
+                  }
+                />
+              </label>
+              <label className="number-field">
+                <span>横</span>
+                <input
+                  type="number"
+                  min={5}
+                  max={50}
+                  step={1}
+                  value={params.grid_width}
+                  onChange={(event) =>
+                    setParams((current) => ({
+                      ...current,
+                      grid_width: clampSize(event.target.value),
+                    }))
+                  }
+                />
+              </label>
+            </div>
             <SliderField
               label="Blur"
               min={0}
@@ -684,22 +724,6 @@ function ImageConvertModal({
               step={1}
               value={params.noise_removal}
               onChange={(value) => setParams((current) => ({ ...current, noise_removal: value }))}
-            />
-            <SliderField
-              label="Width"
-              min={5}
-              max={50}
-              step={1}
-              value={params.grid_width}
-              onChange={(value) => setParams((current) => ({ ...current, grid_width: value }))}
-            />
-            <SliderField
-              label="Height"
-              min={5}
-              max={50}
-              step={1}
-              value={params.grid_height}
-              onChange={(value) => setParams((current) => ({ ...current, grid_height: value }))}
             />
           </div>
         </div>
