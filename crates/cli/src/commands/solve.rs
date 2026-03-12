@@ -3,7 +3,10 @@ use std::path::PathBuf;
 use clap::{Args, ValueEnum};
 use nonomaker_core::{
     format::{partial_grid_to_json, puzzle_from_json, solution_to_json},
-    solver::{BacktrackingSolver, CompleteSolver, PartialSolver, PropagationSolver, SatSolver},
+    solver::{
+        BacktrackingSolver, CompleteSolver, Fp1Solver, Fp2Solver, PartialSolver,
+        PropagationSolver, SatSolver,
+    },
 };
 
 use crate::{
@@ -14,6 +17,8 @@ use crate::{
 #[derive(ValueEnum, Clone)]
 pub enum Solver {
     Linear,
+    Fp1,
+    Fp2,
     Backtracking,
     Sat,
 }
@@ -46,6 +51,24 @@ pub fn run(args: SolveArgs) -> Result<(), CliError> {
             solution_to_json(&solution)?
         }
         Solver::Linear => match PropagationSolver.solve_partial(&puzzle) {
+            None => r#"{"status":"contradiction"}"#.to_string(),
+            Some(grid) => {
+                format!(
+                    r#"{{"status":"ok","grid":{}}}"#,
+                    partial_grid_to_json(&grid)
+                )
+            }
+        },
+        Solver::Fp1 => match Fp1Solver.solve_partial(&puzzle) {
+            None => r#"{"status":"contradiction"}"#.to_string(),
+            Some(grid) => {
+                format!(
+                    r#"{{"status":"ok","grid":{}}}"#,
+                    partial_grid_to_json(&grid)
+                )
+            }
+        },
+        Solver::Fp2 => match Fp2Solver.solve_partial(&puzzle) {
             None => r#"{"status":"contradiction"}"#.to_string(),
             Some(grid) => {
                 format!(

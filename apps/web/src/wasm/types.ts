@@ -1,7 +1,7 @@
 export type Grid = boolean[][];
 export type PartialGrid = Array<Array<boolean | null>>;
 
-export type PartialSolverType = "linear" | "fp2";
+export type PartialSolverType = "linear" | "fp1" | "fp2";
 export type CompleteSolverType = "backtracking" | "sat";
 
 export interface Puzzle {

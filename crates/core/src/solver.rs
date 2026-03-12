@@ -4,6 +4,7 @@ use crate::{
 };
 
 mod backtracking;
+mod fully_probing;
 mod line_solver;
 mod propagation;
 mod sat;
@@ -41,6 +42,24 @@ impl PartialSolver for PropagationSolver {
         let mut grid = Grid::new(puzzle.width(), puzzle.height());
         let valid = propagate(&mut grid, puzzle);
         if valid { Some(grid) } else { None }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct Fp1Solver;
+
+impl PartialSolver for Fp1Solver {
+    fn solve_partial(&self, puzzle: &Puzzle) -> Option<Grid> {
+        fully_probing::solve(puzzle, fully_probing::FullyProbingMode::Fp1)
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct Fp2Solver;
+
+impl PartialSolver for Fp2Solver {
+    fn solve_partial(&self, puzzle: &Puzzle) -> Option<Grid> {
+        fully_probing::solve(puzzle, fully_probing::FullyProbingMode::Fp2)
     }
 }
 

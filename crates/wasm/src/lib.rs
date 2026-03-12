@@ -2,7 +2,10 @@ use nonomaker_core::{
     ImageConvertParams, format, grid_to_id as core_grid_to_id,
     grid_to_puzzle as core_grid_to_puzzle, id_to_grid as core_id_to_grid,
     image_to_grid as core_image_to_grid,
-    solver::{BacktrackingSolver, CompleteSolver, PartialSolver, PropagationSolver, SatSolver},
+    solver::{
+        BacktrackingSolver, CompleteSolver, Fp1Solver, Fp2Solver, PartialSolver,
+        PropagationSolver, SatSolver,
+    },
 };
 use serde::Deserialize;
 use wasm_bindgen::prelude::*;
@@ -27,7 +30,13 @@ pub fn set_panic_hook() {
 pub fn solve_partial(puzzle_json: &str, solver: &str) -> Result<Option<String>, JsValue> {
     let puzzle = parse_puzzle(puzzle_json)?;
     match solver {
-        "linear" | "fp2" => Ok(PropagationSolver
+        "linear" => Ok(PropagationSolver
+            .solve_partial(&puzzle)
+            .map(|grid| format::partial_grid_to_json(&grid))),
+        "fp1" => Ok(Fp1Solver
+            .solve_partial(&puzzle)
+            .map(|grid| format::partial_grid_to_json(&grid))),
+        "fp2" => Ok(Fp2Solver
             .solve_partial(&puzzle)
             .map(|grid| format::partial_grid_to_json(&grid))),
         other => Err(JsValue::from_str(&format!(
