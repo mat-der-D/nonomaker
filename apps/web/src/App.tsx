@@ -247,9 +247,6 @@ function MakerPage() {
           <p className="eyebrow">Nonogram puzzle maker</p>
           <h1>Nono<span>Maker</span></h1>
         </div>
-        <a className="ghost-link" href="/maker">
-          /maker
-        </a>
       </header>
 
       <section className="toolbar">
