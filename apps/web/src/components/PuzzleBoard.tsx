@@ -60,7 +60,7 @@ export function PuzzleBoard({
 
   function resolveNextPlayCell(currentCell: PlayCell, isSecondaryAction: boolean): PlayCell {
     if (isSecondaryAction) {
-      return currentCell === "filled" ? "unknown" : "crossed";
+      return currentCell === "crossed" ? "unknown" : "crossed";
     }
     return currentCell === "filled" ? "unknown" : "filled";
   }
