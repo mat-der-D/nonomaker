@@ -9,7 +9,6 @@ import {
   idToGrid,
   imageToGrid,
   solveComplete,
-  solvePartial,
 } from "./wasm/api";
 import type { Grid, ImageToGridParams, Puzzle, Solution } from "./wasm/types";
 
@@ -19,7 +18,6 @@ type Route =
 
 interface AnalysisState {
   solution: Solution | null;
-  partialRatio: number | null;
   message: string | null;
 }
 
@@ -60,7 +58,6 @@ function MakerPage() {
   const [size, setSize] = useState({ width: 20, height: 20 });
   const [analysis, setAnalysis] = useState<AnalysisState>({
     solution: null,
-    partialRatio: null,
     message: null,
   });
   const [busy, setBusy] = useState<string | null>(null);
@@ -91,27 +88,26 @@ function MakerPage() {
     setBusy("checking");
     try {
       const puzzle = await gridToPuzzle(grid);
-      const [solution, partial] = await Promise.all([
-        solveComplete(puzzle, "backtracking"),
-        solvePartial(puzzle, "linear"),
-      ]);
-      const width = grid[0].length;
-      const height = grid.length;
-      const resolved =
-        partial?.flat().filter((cell) => cell !== null).length ?? 0;
-      const partialRatio = resolved / (width * height);
+      const solution = await solveComplete(puzzle, "sat");
       const message =
         solution.status === "unique"
           ? "一意解です。共有とエクスポートを有効化しました。"
           : solution.status === "multiple"
             ? `複数解です (${solution.grids.length}件)。`
             : "解なしです。";
-      setAnalysis({ solution, partialRatio, message });
+      setAnalysis({ solution, message });
     } catch (error) {
-      setAnalysis({ solution: null, partialRatio: null, message: String(error) });
+      setAnalysis({ solution: null, message: String(error) });
     } finally {
       setBusy(null);
     }
+  }
+
+  function runDifficultyCheck() {
+    setAnalysis((current) => ({
+      ...current,
+      message: "難易度チェックは未実装です。",
+    }));
   }
 
   async function generateShare() {
@@ -239,7 +235,7 @@ function MakerPage() {
           <button type="button" className="btn btn-subtle" onClick={() => void runCheck()} disabled={busy !== null}>
             ✔ 解答チェック
           </button>
-          <button type="button" className="btn btn-subtle" onClick={() => void runCheck()} disabled={busy !== null}>
+          <button type="button" className="btn btn-subtle" onClick={() => void runDifficultyCheck()} disabled={busy !== null}>
             📊 難易度チェック
           </button>
           <button type="button" className="btn btn-subtle" onClick={() => void exportArtifacts()} disabled={!exportAllowed}>
@@ -267,14 +263,6 @@ function MakerPage() {
           <section className="card">
             <h2>Status</h2>
             <p>{busy ? `${busy}...` : analysis.message ?? "盤面を編集して解答チェックを実行してください。"}</p>
-            {analysis.partialRatio !== null && (
-              <>
-                <p>論理確定率: {Math.round(analysis.partialRatio * 100)}%</p>
-                <div className="ratio-bar-track">
-                  <div className="ratio-bar-fill" style={{ width: `${Math.round(analysis.partialRatio * 100)}%` }} />
-                </div>
-              </>
-            )}
             {shareUrl && <input className="share-input" readOnly value={shareUrl} />}
           </section>
         </aside>
