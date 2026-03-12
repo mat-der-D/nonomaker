@@ -24,7 +24,7 @@ interface AnalysisState {
 
 interface CheckDialogState {
   open: boolean;
-  status: "running" | "done" | "error" | "cancelled";
+  status: "idle" | "running" | "done" | "error" | "cancelled";
   message: string;
   solution: Solution | null;
 }
@@ -96,9 +96,10 @@ function MakerPage() {
     open: false,
     selected: "puzzle-png",
   });
+  const [selectedSolutionIndex, setSelectedSolutionIndex] = useState(0);
   const [checkDialog, setCheckDialog] = useState<CheckDialogState>({
     open: false,
-    status: "running",
+    status: "idle",
     message: "",
     solution: null,
   });
@@ -119,6 +120,10 @@ function MakerPage() {
       height: String(grid.length),
     });
   }, [grid]);
+
+  useEffect(() => {
+    setSelectedSolutionIndex(0);
+  }, [checkDialog.solution]);
 
   function commit(next: Grid) {
     setHistory((current) => [...current, grid]);
@@ -166,7 +171,7 @@ function MakerPage() {
         solution.status === "unique"
           ? "一意解です。共有とエクスポートを有効化しました。"
           : solution.status === "multiple"
-            ? `複数解です (${solution.grids.length}件)。`
+            ? "複数解です。"
             : "解なしです。";
       setAnalysis({ solution, message });
       setCheckDialog({
@@ -203,13 +208,6 @@ function MakerPage() {
       message: "解答チェックを中止しました。",
       solution: null,
     });
-  }
-
-  function runDifficultyCheck() {
-    setAnalysis((current) => ({
-      ...current,
-      message: "難易度チェックは未実装です。",
-    }));
   }
 
   async function generateShare() {
@@ -490,17 +488,6 @@ function MakerPage() {
                   ))}
                 </div>
               </section>
-
-              <section className="tool-actions card">
-                <div className="tool-actions-row">
-                  <button type="button" className="btn btn-primary tool-action-btn" onClick={() => void runCheck()} disabled={busy !== null}>
-                    解答チェック
-                  </button>
-                  <button type="button" className="btn btn-subtle tool-action-btn" onClick={() => void runDifficultyCheck()} disabled={busy !== null}>
-                    難易度チェック
-                  </button>
-                </div>
-              </section>
             </aside>
 
             <div
@@ -532,8 +519,75 @@ function MakerPage() {
 
         <aside className="side-panel">
           <section className="card">
-            <h2>Status</h2>
-            <p>{busy ? `${busy}...` : analysis.message ?? "盤面を編集して解答チェックを実行してください。"}</p>
+            <h2>Answer Check</h2>
+            <div className="tool-actions-row side-panel-actions">
+              {checkDialog.status === "running" ? (
+                <button type="button" className="btn btn-ghost tool-action-btn" onClick={cancelCheck}>
+                  中止
+                </button>
+              ) : (
+                <button type="button" className="btn btn-primary tool-action-btn" onClick={() => void runCheck()} disabled={busy !== null}>
+                  解答チェック
+                </button>
+              )}
+            </div>
+            <div className={`check-status-panel side-check-status ${checkDialog.solution?.status === "multiple" ? "compact" : ""}`}>
+              <div className={`check-status-icon ${checkDialog.status} ${checkDialog.solution?.status === "multiple" ? "negative" : ""}`}>
+                {checkDialog.status === "running"
+                  ? "◌"
+                  : checkDialog.status === "cancelled"
+                    ? "■"
+                    : checkDialog.status === "error" || checkDialog.solution?.status === "multiple"
+                      ? "×"
+                      : checkDialog.solution?.status === "unique"
+                        ? "✓"
+                        : "…"}
+              </div>
+              <div>
+                <p className="check-status-label">
+                  {checkDialog.status === "running"
+                    ? "解析中"
+                    : checkDialog.status === "done"
+                      ? "解析完了"
+                      : checkDialog.status === "cancelled"
+                        ? "中止"
+                        : checkDialog.status === "error"
+                          ? "エラー"
+                          : "未実行"}
+                </p>
+                <p className="modal-status">{checkDialog.message || "まだ解析していません。"}</p>
+              </div>
+            </div>
+            {checkDialog.solution?.grids.length ? (
+              <div className="side-check-solution-stack">
+                <div className="preview-panel check-solution-panel side-check-solution-panel">
+                  {checkDialog.solution.status === "multiple" ? (
+                    <div className="solution-tabs segmented-solution-tabs" role="tablist" aria-label="solutions">
+                      {checkDialog.solution.grids.map((_, index) => (
+                        <button
+                          key={index}
+                          type="button"
+                          role="tab"
+                          className={`solution-tab ${index === selectedSolutionIndex ? "active" : ""}`}
+                          aria-selected={index === selectedSolutionIndex}
+                          onClick={() => setSelectedSolutionIndex(index)}
+                        >
+                          Solution {index + 1}
+                        </button>
+                      ))}
+                    </div>
+                  ) : (
+                    <h3>Solution</h3>
+                  )}
+                  <div className="preview-frame side-check-preview-frame">
+                    <StaticGridPreview
+                      grid={checkDialog.solution.grids[Math.min(selectedSolutionIndex, checkDialog.solution.grids.length - 1)]}
+                      fitSquare
+                    />
+                  </div>
+                </div>
+              </div>
+            ) : null}
             {shareUrl && (
               <>
                 <input className="share-input" readOnly value={shareUrl} />
@@ -546,12 +600,6 @@ function MakerPage() {
                 </button>
               </>
             )}
-          </section>
-
-          <section className="card">
-            <h2>Editor</h2>
-            <p>現在のツール: {activeTool.label}</p>
-            <p>盤面サイズ: {size.height} × {size.width}</p>
           </section>
         </aside>
       </section>
@@ -574,15 +622,6 @@ function MakerPage() {
           onClose={() => setImageModalOpen(false)}
         />
       )}
-
-      {checkDialog.open && (
-        <CheckResultModal
-          state={checkDialog}
-          onCancel={cancelCheck}
-          onClose={() => setCheckDialog((current) => ({ ...current, open: false }))}
-        />
-      )}
-
       {exportDialog.open && (
         <ExportFormatModal
           selected={exportDialog.selected}
@@ -992,9 +1031,11 @@ function SliderField({
 function StaticGridPreview({
   grid,
   maxSide,
+  fitSquare = false,
 }: {
   grid: Grid;
   maxSide?: number;
+  fitSquare?: boolean;
 }) {
   const columns = grid[0]?.length ?? 0;
   const rows = grid.length;
@@ -1002,14 +1043,18 @@ function StaticGridPreview({
   const side = maxSide ?? 220;
   const width = `${(side * (columns / longest)).toFixed(2)}px`;
   const height = `${(side * (rows / longest)).toFixed(2)}px`;
+  const fitWidth = `${((columns / longest) * 100).toFixed(4)}%`;
+  const fitHeight = `${((rows / longest) * 100).toFixed(4)}%`;
 
   return (
     <div
-      className="static-grid-preview"
+      className={`static-grid-preview ${fitSquare ? "fit-square" : ""}`}
       style={{
         gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`,
         "--preview-width": width,
         "--preview-height": height,
+        "--preview-fit-width": fitWidth,
+        "--preview-fit-height": fitHeight,
       } as CSSProperties}
     >
       {grid.flatMap((row, rowIndex) =>
