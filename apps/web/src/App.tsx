@@ -64,6 +64,7 @@ function MakerPage() {
   const [history, setHistory] = useState<Grid[]>([]);
   const [future, setFuture] = useState<Grid[]>([]);
   const [tool, setTool] = useState<EditorTool>("draw");
+  const [canvasScale, setCanvasScale] = useState("100");
   const [size, setSize] = useState({ width: 20, height: 20 });
   const [sizeDraft, setSizeDraft] = useState({ width: "20", height: "20" });
   const [analysis, setAnalysis] = useState<AnalysisState>({
@@ -240,6 +241,7 @@ function MakerPage() {
   }
 
   const exportAllowed = analysis.solution?.status === "unique";
+  const canvasScaleValue = clampCanvasScale(canvasScale);
   const toolItems: Array<{ id: EditorTool; icon: string; label: string; hint: string }> = [
     { id: "draw", icon: "■", label: "ペン", hint: "塗る" },
     { id: "erase", icon: "□", label: "消しゴム", hint: "消す" },
@@ -262,7 +264,7 @@ function MakerPage() {
       <section className="toolbar">
         <div className="toolbar-section">
           <p className="toolbar-title">Canvas</p>
-          <div className="toolbar-group">
+          <div className="toolbar-group canvas-toolbar-group">
             <div className="size-fields">
               <label className="inline-number-field">
                 <span>縦</span>
@@ -295,6 +297,19 @@ function MakerPage() {
             <button type="button" className="btn btn-subtle" onClick={resizeGrid}>
               サイズ適用
             </button>
+            <label className="inline-number-field canvas-scale-field">
+              <span>表示</span>
+              <input
+                type="number"
+                min={50}
+                max={300}
+                step={10}
+                value={canvasScale}
+                onChange={(event) => setCanvasScale(event.target.value)}
+                onBlur={() => setCanvasScale(String(canvasScaleValue))}
+              />
+              <strong className="inline-unit">%</strong>
+            </label>
             <button type="button" className="btn btn-ghost" onClick={() => window.confirm("盤面をクリアしますか？") && commit(createGrid(grid[0].length, grid.length))}>
               クリア
             </button>
@@ -379,15 +394,18 @@ function MakerPage() {
               </section>
             </aside>
 
-            <EditorGrid
-              grid={grid}
-              tool={tool}
-              onChange={(next) => {
-                if (!equalGrid(next, grid)) {
-                  commit(next);
-                }
-              }}
-            />
+            <div className="maker-canvas-viewport">
+              <EditorGrid
+                grid={grid}
+                tool={tool}
+                scalePercent={canvasScaleValue}
+                onChange={(next) => {
+                  if (!equalGrid(next, grid)) {
+                    commit(next);
+                  }
+                }}
+              />
+            </div>
           </div>
         </div>
 
@@ -986,6 +1004,14 @@ function clampSize(value: string) {
     return 5;
   }
   return Math.min(50, Math.max(5, Math.round(parsed)));
+}
+
+function clampCanvasScale(value: string) {
+  const parsed = Number(value);
+  if (Number.isNaN(parsed)) {
+    return 100;
+  }
+  return Math.min(300, Math.max(50, Math.round(parsed)));
 }
 
 function isGrid(value: unknown): value is Grid {

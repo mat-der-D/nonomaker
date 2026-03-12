@@ -61,6 +61,10 @@ button { cursor: pointer; }
   max-width: 1440px;
   margin: 0 auto;
   padding: 28px 28px 56px;
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+  overflow: hidden;
 }
 
 /* ── Topbar ────────────────────────────────────────────────── */
@@ -115,8 +119,8 @@ button { cursor: pointer; }
 
 /* ── Shared controls ───────────────────────────────────────── */
 .toolbar {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  display: flex;
+  flex-wrap: wrap;
   align-items: stretch;
   gap: 10px;
   padding: 12px;
@@ -130,6 +134,7 @@ button { cursor: pointer; }
   gap: 8px;
   align-content: start;
   padding: 10px;
+  flex: 0 0 auto;
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255,255,255,0.08);
   border-radius: 8px;
@@ -154,6 +159,10 @@ button { cursor: pointer; }
   gap: 6px;
   flex-wrap: wrap;
   min-width: 0;
+}
+
+.canvas-toolbar-group {
+  flex-wrap: nowrap;
 }
 
 .size-fields input[type="number"] {
@@ -241,6 +250,8 @@ button { cursor: pointer; }
   display: grid;
   grid-template-columns: minmax(0, 1fr) 300px;
   gap: 16px;
+  flex: 1;
+  min-height: 0;
 }
 
 /* ── Panels ────────────────────────────────────────────────── */
@@ -253,11 +264,14 @@ button { cursor: pointer; }
   align-items: center;
   justify-content: center;
   min-height: 480px;
+  min-width: 0;
+  min-height: 0;
 }
 
 .maker-editor-panel {
   align-items: stretch;
   justify-content: stretch;
+  overflow: hidden;
 }
 
 .maker-workbench {
@@ -265,7 +279,8 @@ button { cursor: pointer; }
   display: grid;
   grid-template-columns: 144px minmax(0, 1fr);
   gap: 18px;
-  align-items: start;
+  align-items: stretch;
+  min-height: 0;
 }
 
 .maker-sidebar {
@@ -274,6 +289,15 @@ button { cursor: pointer; }
   align-content: start;
   position: sticky;
   top: 24px;
+}
+
+.maker-canvas-viewport {
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+  display: grid;
+  justify-items: center;
+  align-items: start;
 }
 
 .tool-actions {
@@ -295,6 +319,8 @@ button { cursor: pointer; }
   display: grid;
   gap: 12px;
   align-content: start;
+  min-height: 0;
+  overflow: auto;
 }
 
 .card {
@@ -358,6 +384,17 @@ button { cursor: pointer; }
   display: grid;
   gap: 12px;
   justify-items: center;
+}
+
+.editor-grid-scale {
+  transform: scale(var(--editor-grid-scale, 1));
+  transform-origin: top left;
+}
+
+.editor-grid-scale-shell {
+  display: grid;
+  place-items: start;
+  flex-shrink: 0;
 }
 
 .toolbox {
@@ -959,6 +996,40 @@ button { cursor: pointer; }
   white-space: nowrap;
 }
 
+.inline-number-field input[type="number"] {
+  width: 64px;
+  background: #28364e;
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 6px;
+  padding: 6px 8px;
+  color: var(--text);
+  text-align: center;
+  font-family: "DM Mono", monospace;
+  font-size: 0.9rem;
+  -moz-appearance: textfield;
+}
+
+.canvas-scale-field input[type="number"] {
+  width: 52px;
+}
+
+.inline-number-field input[type="number"]::-webkit-inner-spin-button,
+.inline-number-field input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+}
+
+.inline-number-field input[type="number"]:focus {
+  outline: none;
+  border-color: var(--amber);
+}
+
+.inline-unit {
+  font-family: "DM Mono", monospace;
+  font-size: 0.82rem;
+  font-weight: 400;
+  color: var(--text-2);
+}
+
 .play-main {
   display: grid;
   gap: 12px;
@@ -1018,6 +1089,7 @@ button { cursor: pointer; }
     grid-template-columns: 1fr;
   }
   .toolbar {
+    display: grid;
     grid-template-columns: 1fr;
   }
   .image-modal-body, .preview-panels {
