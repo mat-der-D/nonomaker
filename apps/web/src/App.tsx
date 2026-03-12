@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { EditorGrid, type EditorTool } from "./components/EditorGrid";
 import { PuzzleBoard, type PlayCell } from "./components/PuzzleBoard";
 import { useWasm } from "./hooks/useWasm";
@@ -303,7 +303,7 @@ function MakerPage() {
               className="btn btn-subtle"
               onClick={() => setImageModalOpen(true)}
             >
-              画像変換
+              画像から盤面作成
             </button>
             <label className="file-button btn btn-subtle">
               JSON 読み込み
@@ -422,7 +422,7 @@ function MakerPage() {
             commit(next);
             setAnalysis((current) => ({
               ...current,
-              message: "画像変換の結果を適用しました。",
+              message: "画像から作成した盤面を適用しました。",
             }));
             setImageModalOpen(false);
           }}
@@ -591,8 +591,8 @@ function ImageConvertModal({
       <section className="modal-card image-modal" onClick={(event) => event.stopPropagation()}>
         <header className="modal-header">
           <div>
-            <p className="eyebrow">Image Convert</p>
-            <h2>画像からグリッドを作成</h2>
+            <p className="eyebrow">Image To Board</p>
+            <h2>画像から盤面作成</h2>
           </div>
           <button type="button" className="btn btn-ghost" onClick={onClose}>
             閉じる ×
@@ -628,15 +628,26 @@ function ImageConvertModal({
             <div className="preview-panels">
               <div className="preview-panel">
                 <h3>Original</h3>
-                {source ? <img src={source.url} alt={source.name} /> : <p>画像を選択してください。</p>}
+                <div className="preview-frame">
+                  {source ? (
+                    <div
+                      className="preview-image-surface"
+                      role="img"
+                      aria-label={source.name}
+                      style={{ backgroundImage: `url("${source.url}")` }}
+                    />
+                  ) : <p>画像を選択してください。</p>}
+                </div>
               </div>
               <div className="preview-panel">
                 <h3>Preview</h3>
-                {preview ? (
-                  <StaticGridPreview grid={preview} />
-                ) : (
-                  <p>{status}</p>
-                )}
+                <div className="preview-frame">
+                  {preview ? (
+                    <StaticGridPreview grid={preview} maxSide={296} />
+                  ) : (
+                    <p>{status}</p>
+                  )}
+                </div>
               </div>
             </div>
           </div>
@@ -752,23 +763,31 @@ function StaticGridPreview({
   const columns = grid[0]?.length ?? 0;
   const rows = grid.length;
   const longest = Math.max(columns, rows, 1);
-  const width = (maxSide ?? 220) * (columns / longest);
-  const height = (maxSide ?? 220) * (rows / longest);
+  const side = maxSide ?? 220;
+  const width = `${(side * (columns / longest)).toFixed(2)}px`;
+  const height = `${(side * (rows / longest)).toFixed(2)}px`;
 
   return (
     <div
       className="static-grid-preview"
       style={{
         gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`,
-        width,
-        height,
-      }}
+        "--preview-width": width,
+        "--preview-height": height,
+      } as CSSProperties}
     >
       {grid.flatMap((row, rowIndex) =>
         row.map((cell, colIndex) => (
           <span
             key={`${rowIndex}-${colIndex}`}
-            className={`static-grid-cell ${cell ? "filled" : ""}`}
+            className={[
+              "static-grid-cell",
+              cell ? "filled" : "",
+              rowIndex > 0 && rowIndex % 5 === 0 ? "major-top" : "",
+              colIndex > 0 && colIndex % 5 === 0 ? "major-left" : "",
+            ]
+              .filter(Boolean)
+              .join(" ")}
           />
         )),
       )}
