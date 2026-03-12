@@ -72,58 +72,12 @@ impl<'a> Encoder<'a> {
 
     fn encode_line(&mut self, cells: &[i32], blocks: &[usize]) {
         let automaton = Automaton::from_blocks(blocks);
-        let state_vars = (0..=cells.len())
-            .map(|_| {
-                (0..automaton.states.len())
-                    .map(|_| self.alloc_var())
-                    .collect::<Vec<_>>()
-            })
-            .collect::<Vec<_>>();
+        let state_vars = self.alloc_state_vars(cells.len(), automaton.states.len());
 
-        self.exactly_one(&state_vars[0]);
-        self.clauses.push(vec![state_vars[0][automaton.start]]);
-        for (state, &var) in state_vars[0].iter().enumerate() {
-            if state != automaton.start {
-                self.clauses.push(vec![-var]);
-            }
-        }
-
-        for vars in state_vars.iter().skip(1) {
-            self.exactly_one(vars);
-        }
-
-        for (pos, &cell_var) in cells.iter().enumerate() {
-            for (state, trans) in automaton.states.iter().enumerate() {
-                let current = state_vars[pos][state];
-
-                match trans.on_blank {
-                    Some(next) => {
-                        self.clauses
-                            .push(vec![-current, cell_var, state_vars[pos + 1][next]]);
-                    }
-                    None => {
-                        self.clauses.push(vec![-current, cell_var]);
-                    }
-                }
-
-                match trans.on_filled {
-                    Some(next) => {
-                        self.clauses
-                            .push(vec![-current, -cell_var, state_vars[pos + 1][next]]);
-                    }
-                    None => {
-                        self.clauses.push(vec![-current, -cell_var]);
-                    }
-                }
-            }
-        }
-
-        let accept_clause = automaton
-            .accepting
-            .iter()
-            .map(|&state| state_vars[cells.len()][state])
-            .collect::<Vec<_>>();
-        self.clauses.push(accept_clause);
+        self.encode_start_state(&state_vars, automaton.start);
+        self.encode_state_uniqueness(&state_vars);
+        self.encode_transitions(&automaton, cells, &state_vars);
+        self.encode_accepting_states(&automaton, &state_vars, cells.len());
     }
 
     fn add_blocking_clause(&mut self, grid: &Grid) {
@@ -181,6 +135,86 @@ impl<'a> Encoder<'a> {
 
     fn cell_var(&self, row: usize, col: usize) -> i32 {
         self.cells[row * self.puzzle.width() + col]
+    }
+
+    fn alloc_state_vars(&mut self, line_len: usize, n_states: usize) -> Vec<Vec<i32>> {
+        (0..=line_len)
+            .map(|_| (0..n_states).map(|_| self.alloc_var()).collect())
+            .collect()
+    }
+
+    fn encode_start_state(&mut self, state_vars: &[Vec<i32>], start_state: usize) {
+        for (state, &var) in state_vars[0].iter().enumerate() {
+            self.clauses
+                .push(vec![if state == start_state { var } else { -var }]);
+        }
+    }
+
+    fn encode_state_uniqueness(&mut self, state_vars: &[Vec<i32>]) {
+        for vars in state_vars {
+            self.exactly_one(vars);
+        }
+    }
+
+    fn encode_transitions(
+        &mut self,
+        automaton: &Automaton,
+        cells: &[i32],
+        state_vars: &[Vec<i32>],
+    ) {
+        for (pos, &cell_var) in cells.iter().enumerate() {
+            let current_states = &state_vars[pos];
+            let next_states = &state_vars[pos + 1];
+            for (state, trans) in automaton.states.iter().enumerate() {
+                let current = current_states[state];
+                self.encode_symbol_transition(
+                    current,
+                    cell_var,
+                    next_states,
+                    trans.on_blank,
+                    false,
+                );
+                self.encode_symbol_transition(
+                    current,
+                    cell_var,
+                    next_states,
+                    trans.on_filled,
+                    true,
+                );
+            }
+        }
+    }
+
+    fn encode_symbol_transition(
+        &mut self,
+        current_state_var: i32,
+        cell_var: i32,
+        next_states: &[i32],
+        next_state: Option<usize>,
+        filled: bool,
+    ) {
+        let cell_literal = if filled { -cell_var } else { cell_var };
+        match next_state {
+            Some(next) => {
+                self.clauses
+                    .push(vec![-current_state_var, cell_literal, next_states[next]])
+            }
+            None => self.clauses.push(vec![-current_state_var, cell_literal]),
+        }
+    }
+
+    fn encode_accepting_states(
+        &mut self,
+        automaton: &Automaton,
+        state_vars: &[Vec<i32>],
+        line_len: usize,
+    ) {
+        let accept_clause = automaton
+            .accepting
+            .iter()
+            .map(|&state| state_vars[line_len][state])
+            .collect::<Vec<_>>();
+        self.clauses.push(accept_clause);
     }
 }
 
