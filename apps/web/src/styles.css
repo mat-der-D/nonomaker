@@ -353,7 +353,31 @@ button { cursor: pointer; }
 
 .side-check-status {
   justify-content: flex-start;
-  margin-bottom: 14px;
+  margin-bottom: 10px;
+  gap: 10px;
+  padding: 8px 10px;
+  align-items: flex-start;
+}
+
+.side-check-status .check-status-icon {
+  width: 28px;
+  height: 28px;
+  font-size: 0.9rem;
+}
+
+.side-check-status-copy {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.side-check-status .check-status-label {
+  margin: 0;
+  font-size: 0.66rem;
+}
+
+.side-check-status .modal-status {
+  line-height: 1.35;
 }
 
 .side-check-solution-stack {

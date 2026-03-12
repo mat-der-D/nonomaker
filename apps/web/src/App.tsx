@@ -543,7 +543,7 @@ function MakerPage() {
                         ? "✓"
                         : "…"}
               </div>
-              <div>
+              <div className="side-check-status-copy">
                 <p className="check-status-label">
                   {checkDialog.status === "running"
                     ? "解析中"
@@ -796,6 +796,10 @@ function ImageConvertModal({
   onClose: () => void;
 }) {
   const [params, setParams] = useState<ImageToGridParams>(initialParams);
+  const [sizeDraft, setSizeDraft] = useState({
+    width: String(initialParams.grid_width),
+    height: String(initialParams.grid_height),
+  });
   const [source, setSource] = useState<{
     bytes: Uint8Array;
     url: string;
@@ -811,6 +815,13 @@ function ImageConvertModal({
       }
     };
   }, [source]);
+
+  useEffect(() => {
+    setSizeDraft({
+      width: String(params.grid_width),
+      height: String(params.grid_height),
+    });
+  }, [params.grid_width, params.grid_height]);
 
   useEffect(() => {
     if (!source) {
@@ -842,6 +853,16 @@ function ImageConvertModal({
       window.clearTimeout(timer);
     };
   }, [params, source]);
+
+  function commitImageSize(nextWidth: string, nextHeight: string) {
+    const width = clampSize(nextWidth);
+    const height = clampSize(nextHeight);
+    setParams((current) => ({
+      ...current,
+      grid_width: width,
+      grid_height: height,
+    }));
+  }
 
   return (
     <div className="modal-backdrop" role="presentation" onClick={onClose}>
@@ -918,13 +939,14 @@ function ImageConvertModal({
                   min={5}
                   max={50}
                   step={1}
-                  value={params.grid_height}
+                  value={sizeDraft.height}
                   onChange={(event) =>
-                    setParams((current) => ({
+                    setSizeDraft((current) => ({
                       ...current,
-                      grid_height: clampSize(event.target.value),
+                      height: event.target.value,
                     }))
                   }
+                  onBlur={() => commitImageSize(sizeDraft.width, sizeDraft.height)}
                 />
               </label>
               <label className="number-field">
@@ -934,13 +956,14 @@ function ImageConvertModal({
                   min={5}
                   max={50}
                   step={1}
-                  value={params.grid_width}
+                  value={sizeDraft.width}
                   onChange={(event) =>
-                    setParams((current) => ({
+                    setSizeDraft((current) => ({
                       ...current,
-                      grid_width: clampSize(event.target.value),
+                      width: event.target.value,
                     }))
                   }
+                  onBlur={() => commitImageSize(sizeDraft.width, sizeDraft.height)}
                 />
               </label>
             </div>
