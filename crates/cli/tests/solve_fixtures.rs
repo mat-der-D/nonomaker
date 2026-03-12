@@ -30,6 +30,14 @@ fn solver_cases() -> &'static [SolverCase] {
             expected_suffix: ".partial.json",
         },
         SolverCase {
+            name: "fp1",
+            expected_suffix: ".fp1.json",
+        },
+        SolverCase {
+            name: "fp2",
+            expected_suffix: ".fp2.json",
+        },
+        SolverCase {
             name: "backtracking",
             expected_suffix: ".output.json",
         },
