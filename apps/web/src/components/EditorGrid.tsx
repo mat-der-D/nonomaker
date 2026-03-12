@@ -32,7 +32,7 @@ export function EditorGrid({
   const [shapeCurrent, setShapeCurrent] = useState<{ row: number; col: number } | null>(null);
   const [shapeErase, setShapeErase] = useState(false);
   const cellSize = useMemo(
-    () => Math.max(14, Math.floor(560 / Math.max(grid.length, grid[0]?.length ?? 1))),
+    () => Math.max(14, Math.floor(450 / Math.max(grid.length, grid[0]?.length ?? 1))),
     [grid],
   );
   const gridWidth = (grid[0]?.length ?? 0) * cellSize;
