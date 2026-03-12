@@ -300,8 +300,30 @@ button { cursor: pointer; }
   align-items: start;
 }
 
+.maker-canvas-viewport.pan-active {
+  cursor: grab;
+}
+
+.maker-canvas-viewport.pan-active:active {
+  cursor: grabbing;
+}
+
+.maker-canvas-viewport.zoom-active {
+  cursor: zoom-in;
+}
+
 .tool-actions {
   padding: 10px;
+}
+
+.tool-actions-plain {
+  padding: 0;
+}
+
+.tool-actions-inline {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
 }
 
 .stack-actions,
@@ -465,6 +487,11 @@ button { cursor: pointer; }
   padding: 0;
   overflow: hidden;
   box-shadow: 0 4px 24px rgba(0,0,0,0.5);
+}
+
+.editor-grid.zoom-mode .cell,
+.editor-grid.pan-mode .cell {
+  pointer-events: none;
 }
 
 .cell {

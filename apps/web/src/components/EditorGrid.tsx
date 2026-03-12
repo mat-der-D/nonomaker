@@ -2,7 +2,7 @@ import { useMemo, useState, type CSSProperties } from "react";
 import { cloneGrid } from "../utils/grid";
 import type { Grid } from "../wasm/types";
 
-export type EditorTool = "draw" | "erase" | "invert" | "line" | "rect" | "fill";
+export type EditorTool = "draw" | "erase" | "invert" | "line" | "rect" | "fill" | "zoom" | "pan";
 
 interface EditorGridProps {
   grid: Grid;
@@ -211,9 +211,9 @@ export function EditorGrid({
           className="editor-grid-scale"
           style={{ "--editor-grid-scale": scalePercent / 100 } as CSSProperties}
         >
-          <div
-            className={`editor-grid ${playable ? "play-mode" : ""}`}
-            style={{ gridTemplateColumns: `repeat(${grid[0]?.length ?? 0}, ${cellSize}px)` }}
+        <div
+          className={`editor-grid ${playable ? "play-mode" : ""} ${tool === "zoom" ? "zoom-mode" : ""} ${tool === "pan" ? "pan-mode" : ""}`}
+          style={{ gridTemplateColumns: `repeat(${grid[0]?.length ?? 0}, ${cellSize}px)` }}
           onPointerLeave={() => {
             setPointerActive(false);
             setDragPaintValue(null);

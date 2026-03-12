@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react";
 import { EditorGrid, type EditorTool } from "./components/EditorGrid";
 import { PuzzleBoard, type PlayCell } from "./components/PuzzleBoard";
 import { useWasm } from "./hooks/useWasm";
@@ -81,6 +81,14 @@ function MakerPage() {
     solution: null,
   });
   const checkRunRef = useRef(0);
+  const canvasViewportRef = useRef<HTMLDivElement | null>(null);
+  const panStateRef = useRef<{
+    pointerId: number;
+    startX: number;
+    startY: number;
+    scrollLeft: number;
+    scrollTop: number;
+  } | null>(null);
 
   useEffect(() => {
     setSize({ width: grid[0]?.length ?? 0, height: grid.length });
@@ -249,8 +257,62 @@ function MakerPage() {
     { id: "line", icon: "／", label: "直線", hint: "ドラッグで線" },
     { id: "rect", icon: "▦", label: "矩形", hint: "ドラッグで面" },
     { id: "fill", icon: "▨", label: "バケツ", hint: "連結塗り" },
+    { id: "zoom", icon: "⊕", label: "拡大", hint: "拡大・縮小" },
+    { id: "pan", icon: "✥", label: "移動", hint: "ドラッグで移動" },
   ];
   const activeTool = toolItems.find((item) => item.id === tool) ?? toolItems[0];
+
+  function updateCanvasScale(next: number) {
+    setCanvasScale(String(Math.min(300, Math.max(50, next))));
+  }
+
+  function handleCanvasPointerDown(event: ReactPointerEvent<HTMLDivElement>) {
+    const viewport = canvasViewportRef.current;
+    if (!viewport) {
+      return;
+    }
+
+    if (tool === "pan") {
+      panStateRef.current = {
+        pointerId: event.pointerId,
+        startX: event.clientX,
+        startY: event.clientY,
+        scrollLeft: viewport.scrollLeft,
+        scrollTop: viewport.scrollTop,
+      };
+      event.currentTarget.setPointerCapture(event.pointerId);
+      event.preventDefault();
+      return;
+    }
+
+    if (tool === "zoom") {
+      const delta = event.button === 2 ? -10 : 10;
+      updateCanvasScale(canvasScaleValue + delta);
+      event.preventDefault();
+    }
+  }
+
+  function handleCanvasPointerMove(event: ReactPointerEvent<HTMLDivElement>) {
+    const viewport = canvasViewportRef.current;
+    const panState = panStateRef.current;
+    if (tool !== "pan" || !viewport || !panState || panState.pointerId !== event.pointerId) {
+      return;
+    }
+
+    viewport.scrollLeft = panState.scrollLeft - (event.clientX - panState.startX);
+    viewport.scrollTop = panState.scrollTop - (event.clientY - panState.startY);
+  }
+
+  function handleCanvasPointerUp(event: ReactPointerEvent<HTMLDivElement>) {
+    if (panStateRef.current?.pointerId !== event.pointerId) {
+      return;
+    }
+
+    panStateRef.current = null;
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+  }
 
   return (
     <div className="app-shell">
@@ -350,13 +412,13 @@ function MakerPage() {
         <div className="editor-panel maker-editor-panel">
           <div className="maker-workbench">
             <aside className="maker-sidebar">
-              <section className="tool-actions card">
-                <div className="tool-actions-row">
+              <section className="tool-actions tool-actions-plain">
+                <div className="tool-actions-inline">
                   <button type="button" className="btn btn-ghost tool-action-btn" onClick={() => history.length && (setFuture((current) => [grid, ...current]), setGrid(history[history.length - 1]), setHistory((current) => current.slice(0, -1)))} disabled={history.length === 0}>
-                    ↩ Undo
+                    Undo
                   </button>
                   <button type="button" className="btn btn-ghost tool-action-btn" onClick={() => future.length && (setHistory((current) => [...current, grid]), setGrid(future[0]), setFuture((current) => current.slice(1)))} disabled={future.length === 0}>
-                    ↪ Redo
+                    Redo
                   </button>
                 </div>
               </section>
@@ -364,7 +426,7 @@ function MakerPage() {
               <section className="toolbox card">
                 <div className="toolbox-header">
                   <h2>Tools</h2>
-                  <p>{activeTool.label}{tool === "fill" ? " / 連結塗り" : ""}</p>
+                  <p>{activeTool.label}{tool === "fill" || tool === "zoom" || tool === "pan" ? ` / ${activeTool.hint}` : ""}</p>
                 </div>
                 <div className="toolbox-grid" role="toolbar" aria-label="drawing tools">
                   {toolItems.map((item) => (
@@ -394,7 +456,19 @@ function MakerPage() {
               </section>
             </aside>
 
-            <div className="maker-canvas-viewport">
+            <div
+              ref={canvasViewportRef}
+              className={`maker-canvas-viewport ${tool === "pan" ? "pan-active" : ""} ${tool === "zoom" ? "zoom-active" : ""}`}
+              onContextMenu={(event) => {
+                if (tool === "pan" || tool === "zoom") {
+                  event.preventDefault();
+                }
+              }}
+              onPointerDown={handleCanvasPointerDown}
+              onPointerMove={handleCanvasPointerMove}
+              onPointerUp={handleCanvasPointerUp}
+              onPointerCancel={handleCanvasPointerUp}
+            >
               <EditorGrid
                 grid={grid}
                 tool={tool}
