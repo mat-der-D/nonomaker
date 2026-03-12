@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nonogram Grid Viewer</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+
+        h1 {
+            color: #333;
+        }
+
+        .controls {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        input[type="file"] {
+            padding: 8px;
+            margin-right: 10px;
+        }
+
+        .info {
+            margin-top: 10px;
+            color: #666;
+            font-size: 14px;
+        }
+
+        .grids-container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .grid-wrapper {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .grid-title {
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #333;
+        }
+
+        canvas {
+            border: 1px solid #ddd;
+            display: block;
+            image-rendering: pixelated;
+        }
+
+        .legend {
+            margin-top: 10px;
+            font-size: 12px;
+            color: #666;
+        }
+
+        .legend-item {
+            display: inline-block;
+            margin-right: 20px;
+        }
+
+        .legend-box {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            margin-right: 5px;
+            vertical-align: middle;
+            border: 1px solid #999;
+        }
+
+        .legend-box.filled {
+            background: black;
+        }
+
+        .legend-box.empty {
+            background: white;
+        }
+
+        .legend-box.uncertain {
+            background: #e0e0e0;
+        }
+
+        .error {
+            background: #fee;
+            color: #c33;
+            padding: 10px;
+            border-radius: 4px;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Nonogram Grid Viewer</h1>
+
+    <div class="controls">
+        <input type="file" id="fileInput" accept=".json" multiple>
+        <div class="info">
+            output.json または partial.json を選択してください
+        </div>
+        <div id="error"></div>
+    </div>
+
+    <div class="grids-container" id="gridsContainer"></div>
+
+    <script>
+        const fileInput = document.getElementById('fileInput');
+        const gridsContainer = document.getElementById('gridsContainer');
+        const errorDiv = document.getElementById('error');
+
+        const CELL_SIZE = 20;
+        const PADDING = 10;
+
+        fileInput.addEventListener('change', handleFileSelect);
+
+        function handleFileSelect(event) {
+            errorDiv.textContent = '';
+            gridsContainer.innerHTML = '';
+
+            const files = Array.from(event.target.files);
+
+            files.forEach(file => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    try {
+                        const data = JSON.parse(e.target.result);
+                        displayGrid(file.name, data);
+                    } catch (err) {
+                        errorDiv.innerHTML = `<div class="error">Error reading ${file.name}: ${err.message}</div>`;
+                    }
+                };
+                reader.readAsText(file);
+            });
+        }
+
+        function displayGrid(filename, data) {
+            // Handle both output.json (with grids array) and partial.json (with single grid)
+            let grids = [];
+            let status = data.status || 'unknown';
+
+            if (data.grids) {
+                // output.json format
+                grids = data.grids;
+            } else if (data.grid) {
+                // partial.json format
+                grids = [data.grid];
+            } else {
+                errorDiv.innerHTML = `<div class="error">Invalid format in ${filename}</div>`;
+                return;
+            }
+
+            grids.forEach((grid, index) => {
+                const wrapper = document.createElement('div');
+                wrapper.className = 'grid-wrapper';
+
+                const title = document.createElement('div');
+                title.className = 'grid-title';
+                title.textContent = `${filename}`;
+                if (grids.length > 1) {
+                    title.textContent += ` - Solution ${index + 1}`;
+                }
+                if (status) {
+                    title.textContent += ` (${status})`;
+                }
+                wrapper.appendChild(title);
+
+                const canvas = document.createElement('canvas');
+                drawGrid(canvas, grid);
+                wrapper.appendChild(canvas);
+
+                const legend = document.createElement('div');
+                legend.className = 'legend';
+                legend.innerHTML = `
+                    <div class="legend-item">
+                        <div class="legend-box filled"></div>
+                        塗りつぶし (true)
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-box empty"></div>
+                        × (false)
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-box uncertain"></div>
+                        白 (null)
+                    </div>
+                `;
+                wrapper.appendChild(legend);
+
+                gridsContainer.appendChild(wrapper);
+            });
+        }
+
+        function drawGrid(canvas, grid) {
+            const height = grid.length;
+            const width = height > 0 ? grid[0].length : 0;
+
+            canvas.width = width * CELL_SIZE + PADDING * 2;
+            canvas.height = height * CELL_SIZE + PADDING * 2;
+
+            const ctx = canvas.getContext('2d');
+
+            // Draw background
+            ctx.fillStyle = 'white';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Draw grid
+            for (let y = 0; y < height; y++) {
+                for (let x = 0; x < width; x++) {
+                    const value = grid[y][x];
+                    const cellX = PADDING + x * CELL_SIZE;
+                    const cellY = PADDING + y * CELL_SIZE;
+
+                    if (value === true) {
+                        // Filled cell
+                        ctx.fillStyle = 'black';
+                        ctx.fillRect(cellX, cellY, CELL_SIZE, CELL_SIZE);
+                    } else if (value === false) {
+                        // Cell with X mark
+                        ctx.strokeStyle = '#999';
+                        ctx.lineWidth = 1;
+                        ctx.strokeRect(cellX, cellY, CELL_SIZE, CELL_SIZE);
+
+                        // Draw X
+                        ctx.strokeStyle = '#999';
+                        ctx.lineWidth = 1;
+                        ctx.beginPath();
+                        ctx.moveTo(cellX + 2, cellY + 2);
+                        ctx.lineTo(cellX + CELL_SIZE - 2, cellY + CELL_SIZE - 2);
+                        ctx.stroke();
+                        ctx.beginPath();
+                        ctx.moveTo(cellX + CELL_SIZE - 2, cellY + 2);
+                        ctx.lineTo(cellX + 2, cellY + CELL_SIZE - 2);
+                        ctx.stroke();
+                    } else if (value === null) {
+                        // Uncertain cell (white)
+                        ctx.fillStyle = '#f0f0f0';
+                        ctx.fillRect(cellX, cellY, CELL_SIZE, CELL_SIZE);
+                        ctx.strokeStyle = '#ddd';
+                        ctx.lineWidth = 1;
+                        ctx.strokeRect(cellX, cellY, CELL_SIZE, CELL_SIZE);
+                    }
+                }
+            }
+
+            // Draw grid lines
+            ctx.strokeStyle = '#ccc';
+            ctx.lineWidth = 0.5;
+            for (let i = 0; i <= width; i++) {
+                ctx.beginPath();
+                ctx.moveTo(PADDING + i * CELL_SIZE, PADDING);
+                ctx.lineTo(PADDING + i * CELL_SIZE, PADDING + height * CELL_SIZE);
+                ctx.stroke();
+            }
+            for (let i = 0; i <= height; i++) {
+                ctx.beginPath();
+                ctx.moveTo(PADDING, PADDING + i * CELL_SIZE);
+                ctx.lineTo(PADDING + width * CELL_SIZE, PADDING + i * CELL_SIZE);
+                ctx.stroke();
+            }
+        }
+    </script>
+</body>
+</html>
