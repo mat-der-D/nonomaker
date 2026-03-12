@@ -8,7 +8,7 @@
   --border-2:   rgba(255, 255, 255, 0.13);
 
   --text:       #e6edf3;
-  --text-2:     #8b949e;
+  --text-2:     #a8b8cc;
   --text-3:     #484f58;
 
   --amber:      #f0b429;
@@ -471,6 +471,100 @@ button { cursor: pointer; }
   margin-top: 20px;
 }
 
+.check-modal {
+  width: min(680px, 100%);
+}
+
+.check-modal-body {
+  display: grid;
+  gap: 14px;
+  margin-top: 16px;
+}
+
+.check-status-panel {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  justify-content: center;
+}
+
+.check-status-panel.compact {
+  text-align: center;
+}
+
+.check-status-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-family: "DM Mono", monospace;
+  font-size: 1.1rem;
+  background: var(--bg-3);
+  border: 1px solid var(--border-2);
+  color: var(--text);
+  flex-shrink: 0;
+}
+
+.check-status-icon.running {
+  color: var(--amber);
+  animation: check-spin 0.9s linear infinite;
+}
+
+.check-status-icon.done {
+  color: #86efac;
+}
+
+.check-status-icon.cancelled,
+.check-status-icon.error {
+  color: var(--red);
+}
+
+.check-status-icon.negative {
+  color: var(--red);
+}
+
+@keyframes check-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.check-status-label {
+  margin: 0 0 4px;
+  font-family: "DM Mono", monospace;
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--amber);
+}
+
+.check-solution-stack {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  justify-items: center;
+}
+
+.check-solution-stack.single {
+  grid-template-columns: 1fr;
+  justify-content: center;
+}
+
+.check-solution-panel {
+  min-height: 0;
+  width: 100%;
+  min-width: 0;
+  padding: 12px;
+}
+
+.check-solution-panel .static-grid-preview {
+  margin: 0 auto;
+}
+
 .image-preview-stack,
 .slider-panel {
   background: var(--bg-2);
@@ -502,7 +596,7 @@ button { cursor: pointer; }
   font-size: 0.68rem;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--text-3);
+  color: var(--text-2);
 }
 
 .preview-panel img {

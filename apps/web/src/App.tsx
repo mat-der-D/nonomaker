@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { EditorGrid } from "./components/EditorGrid";
 import { PuzzleBoard } from "./components/PuzzleBoard";
 import { useWasm } from "./hooks/useWasm";
@@ -10,6 +10,7 @@ import {
   imageToGrid,
   solveComplete,
 } from "./wasm/api";
+import { terminateWorker } from "./wasm/workerClient";
 import type { Grid, ImageToGridParams, Puzzle, Solution } from "./wasm/types";
 
 type Route =
@@ -19,6 +20,13 @@ type Route =
 interface AnalysisState {
   solution: Solution | null;
   message: string | null;
+}
+
+interface CheckDialogState {
+  open: boolean;
+  status: "running" | "done" | "error" | "cancelled";
+  message: string;
+  solution: Solution | null;
 }
 
 const defaultImageParams: ImageToGridParams = {
@@ -63,6 +71,13 @@ function MakerPage() {
   const [busy, setBusy] = useState<string | null>(null);
   const [shareUrl, setShareUrl] = useState("");
   const [imageModalOpen, setImageModalOpen] = useState(false);
+  const [checkDialog, setCheckDialog] = useState<CheckDialogState>({
+    open: false,
+    status: "running",
+    message: "",
+    solution: null,
+  });
+  const checkRunRef = useRef(0);
 
   useEffect(() => {
     setSize({ width: grid[0]?.length ?? 0, height: grid.length });
@@ -85,10 +100,21 @@ function MakerPage() {
   }
 
   async function runCheck() {
+    checkRunRef.current += 1;
+    const runId = checkRunRef.current;
     setBusy("checking");
+    setCheckDialog({
+      open: true,
+      status: "running",
+      message: "解答を解析しています。しばらくお待ちください。",
+      solution: null,
+    });
     try {
       const puzzle = await gridToPuzzle(grid);
       const solution = await solveComplete(puzzle, "fp2-backtracking");
+      if (runId !== checkRunRef.current) {
+        return;
+      }
       const message =
         solution.status === "unique"
           ? "一意解です。共有とエクスポートを有効化しました。"
@@ -96,11 +122,40 @@ function MakerPage() {
             ? `複数解です (${solution.grids.length}件)。`
             : "解なしです。";
       setAnalysis({ solution, message });
+      setCheckDialog({
+        open: true,
+        status: "done",
+        message,
+        solution,
+      });
     } catch (error) {
+      if (runId !== checkRunRef.current) {
+        return;
+      }
       setAnalysis({ solution: null, message: String(error) });
+      setCheckDialog({
+        open: true,
+        status: "error",
+        message: String(error),
+        solution: null,
+      });
     } finally {
-      setBusy(null);
+      if (runId === checkRunRef.current) {
+        setBusy(null);
+      }
     }
+  }
+
+  function cancelCheck() {
+    checkRunRef.current += 1;
+    terminateWorker();
+    setBusy(null);
+    setCheckDialog({
+      open: true,
+      status: "cancelled",
+      message: "解答チェックを中止しました。",
+      solution: null,
+    });
   }
 
   function runDifficultyCheck() {
@@ -286,6 +341,102 @@ function MakerPage() {
           onClose={() => setImageModalOpen(false)}
         />
       )}
+
+      {checkDialog.open && (
+        <CheckResultModal
+          state={checkDialog}
+          onCancel={cancelCheck}
+          onClose={() => setCheckDialog((current) => ({ ...current, open: false }))}
+        />
+      )}
+    </div>
+  );
+}
+
+function CheckResultModal({
+  state,
+  onCancel,
+  onClose,
+}: {
+  state: CheckDialogState;
+  onCancel: () => void;
+  onClose: () => void;
+}) {
+  const isMultiple = state.solution?.status === "multiple";
+  const previewBoxSize = isMultiple ? 240 : 300;
+  const visibleSolutions =
+    isMultiple
+      ? state.solution.grids.slice(0, 2)
+      : state.solution?.grids ?? [];
+  const icon =
+    state.status === "running"
+      ? "◌"
+      : state.status === "cancelled"
+        ? "■"
+        : state.status === "error" || isMultiple
+          ? "×"
+          : "✓";
+
+  return (
+    <div className="modal-backdrop" role="presentation">
+      <section className="modal-card check-modal" onClick={(event) => event.stopPropagation()}>
+        <header className="modal-header">
+          <div>
+            <p className="eyebrow">Answer Check</p>
+            <h2>解答チェック</h2>
+          </div>
+        </header>
+
+        <div className="check-modal-body">
+          <div className={`check-status-panel ${visibleSolutions.length === 1 ? "compact" : ""}`}>
+            <div className={`check-status-icon ${state.status} ${isMultiple ? "negative" : ""}`}>
+              {icon}
+            </div>
+            <div>
+              <p className="check-status-label">
+                {state.status === "running"
+                  ? "解析中"
+                  : state.status === "done"
+                    ? "解析完了"
+                    : state.status === "cancelled"
+                      ? "中止"
+                      : "エラー"}
+              </p>
+              <p className="modal-status">{state.message}</p>
+            </div>
+          </div>
+
+          {visibleSolutions.length > 0 && (
+            <div className={`check-solution-stack ${visibleSolutions.length === 1 ? "single" : ""}`}>
+              {visibleSolutions.map((grid, index) => (
+                <div key={index} className="preview-panel check-solution-panel">
+                  <h3>{isMultiple ? `Solution ${index + 1}` : "Solution"}</h3>
+                  <StaticGridPreview grid={grid} maxSide={previewBoxSize} />
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <footer className="modal-footer">
+          <p className="modal-status">
+            {isMultiple && state.solution.grids.length > 2
+              ? `先頭 2 件を表示中 / 全 ${state.solution.grids.length} 件`
+              : " "}
+          </p>
+          <div className="toolbar-group">
+            {state.status === "running" ? (
+              <button type="button" className="btn btn-ghost" onClick={onCancel}>
+                中止
+              </button>
+            ) : (
+              <button type="button" className="btn btn-primary" onClick={onClose}>
+                閉じる
+              </button>
+            )}
+          </div>
+        </footer>
+      </section>
     </div>
   );
 }
@@ -503,13 +654,27 @@ function SliderField({
   );
 }
 
-function StaticGridPreview({ grid }: { grid: Grid }) {
+function StaticGridPreview({
+  grid,
+  maxSide,
+}: {
+  grid: Grid;
+  maxSide?: number;
+}) {
   const columns = grid[0]?.length ?? 0;
+  const rows = grid.length;
+  const longest = Math.max(columns, rows, 1);
+  const width = (maxSide ?? 220) * (columns / longest);
+  const height = (maxSide ?? 220) * (rows / longest);
 
   return (
     <div
       className="static-grid-preview"
-      style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }}
+      style={{
+        gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`,
+        width,
+        height,
+      }}
     >
       {grid.flatMap((row, rowIndex) =>
         row.map((cell, colIndex) => (
