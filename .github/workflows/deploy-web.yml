@@ -4,11 +4,6 @@ on:
   push:
     branches:
       - deploy/web
-    paths:
-      - "apps/web/**"
-      - "crates/core/**"
-      - "crates/wasm/**"
-      - ".github/workflows/deploy-web.yml"
   workflow_dispatch:
 
 permissions:
