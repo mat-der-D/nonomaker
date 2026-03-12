@@ -64,6 +64,7 @@ function MakerPage() {
   const [history, setHistory] = useState<Grid[]>([]);
   const [future, setFuture] = useState<Grid[]>([]);
   const [size, setSize] = useState({ width: 20, height: 20 });
+  const [sizeDraft, setSizeDraft] = useState({ width: "20", height: "20" });
   const [analysis, setAnalysis] = useState<AnalysisState>({
     solution: null,
     message: null,
@@ -81,6 +82,10 @@ function MakerPage() {
 
   useEffect(() => {
     setSize({ width: grid[0]?.length ?? 0, height: grid.length });
+    setSizeDraft({
+      width: String(grid[0]?.length ?? 0),
+      height: String(grid.length),
+    });
   }, [grid]);
 
   function commit(next: Grid) {
@@ -90,7 +95,17 @@ function MakerPage() {
   }
 
   function resizeGrid() {
-    const next = createGrid(size.width, size.height);
+    const nextSize = {
+      width: clampSize(sizeDraft.width),
+      height: clampSize(sizeDraft.height),
+    };
+    setSize(nextSize);
+    setSizeDraft({
+      width: String(nextSize.width),
+      height: String(nextSize.height),
+    });
+
+    const next = createGrid(nextSize.width, nextSize.height);
     for (let row = 0; row < Math.min(grid.length, next.length); row += 1) {
       for (let col = 0; col < Math.min(grid[0].length, next[0].length); col += 1) {
         next[row][col] = grid[row][col];
@@ -243,16 +258,22 @@ function MakerPage() {
             type="number"
             min={5}
             max={50}
-            value={size.width}
-            onChange={(event) => setSize((current) => ({ ...current, width: clampSize(event.target.value) }))}
+            value={sizeDraft.width}
+            onChange={(event) => setSizeDraft((current) => ({ ...current, width: event.target.value }))}
+            onBlur={() =>
+              setSizeDraft((current) => ({ ...current, width: String(clampSize(current.width)) }))
+            }
           />
           <span className="toolbar-x">×</span>
           <input
             type="number"
             min={5}
             max={50}
-            value={size.height}
-            onChange={(event) => setSize((current) => ({ ...current, height: clampSize(event.target.value) }))}
+            value={sizeDraft.height}
+            onChange={(event) => setSizeDraft((current) => ({ ...current, height: event.target.value }))}
+            onBlur={() =>
+              setSizeDraft((current) => ({ ...current, height: String(clampSize(current.height)) }))
+            }
           />
           <button type="button" className="btn btn-subtle" onClick={resizeGrid}>
             ✓ 適用
