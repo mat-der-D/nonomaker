@@ -68,115 +68,117 @@ export function PuzzleBoard({
   }
 
   return (
-    <div
-      className="puzzle-board"
-      style={{
-        "--board-cell-size": `${boardCellSize}px`,
-        gridTemplateColumns: `${rowClueAreaWidth}px auto`,
-        gridTemplateRows: `${colClueAreaHeight}px auto`,
-      } as CSSProperties}
-    >
+    <div className="puzzle-board-viewport">
       <div
-        className="puzzle-corner"
-        style={{ width: rowClueAreaWidth, height: colClueAreaHeight }}
-      />
-      <div
-        className="column-clues"
+        className="puzzle-board"
         style={{
-          width: boardAreaWidth,
-          height: colClueAreaHeight,
-          gridTemplateColumns: `repeat(${puzzle.col_clues.length}, ${boardCellSize}px)`,
-          gridTemplateRows: `repeat(${maxColClueSlots}, ${boardCellSize}px)`,
-        }}
+          "--board-cell-size": `${boardCellSize}px`,
+          gridTemplateColumns: `${rowClueAreaWidth}px auto`,
+          gridTemplateRows: `${colClueAreaHeight}px auto`,
+        } as CSSProperties}
       >
-        {Array.from({ length: maxColClueSlots }, (_, clueRowIndex) =>
-          puzzle.col_clues.map((columnClue, columnIndex) => {
-            const displayColumnClue = columnClue.length === 0 ? [0] : columnClue;
-            const clueValue = displayColumnClue[displayColumnClue.length - maxColClueSlots + clueRowIndex] ?? "";
-            return (
-              <span
-                key={`col-${columnIndex}-${clueRowIndex}`}
+        <div
+          className="puzzle-corner sticky-corner"
+          style={{ width: rowClueAreaWidth, height: colClueAreaHeight }}
+        />
+        <div
+          className="column-clues sticky-top"
+          style={{
+            width: boardAreaWidth,
+            height: colClueAreaHeight,
+            gridTemplateColumns: `repeat(${puzzle.col_clues.length}, ${boardCellSize}px)`,
+            gridTemplateRows: `repeat(${maxColClueSlots}, ${boardCellSize}px)`,
+          }}
+        >
+          {Array.from({ length: maxColClueSlots }, (_, clueRowIndex) =>
+            puzzle.col_clues.map((columnClue, columnIndex) => {
+              const displayColumnClue = columnClue.length === 0 ? [0] : columnClue;
+              const clueValue = displayColumnClue[displayColumnClue.length - maxColClueSlots + clueRowIndex] ?? "";
+              return (
+                <span
+                  key={`col-${columnIndex}-${clueRowIndex}`}
+                  className={[
+                    "clue-cell",
+                    solvedColumns[columnIndex] ? "solved" : "",
+                    columnIndex > 0 && columnIndex % 5 === 0 ? "major-left" : "",
+                  ]
+                    .filter(Boolean)
+                    .join(" ")}
+                >
+                  {clueValue}
+                </span>
+              );
+            }),
+          )}
+        </div>
+        <div
+          className="row-clues sticky-left"
+          style={{
+            width: rowClueAreaWidth,
+            gridTemplateColumns: `repeat(${maxRowClueSlots}, ${boardCellSize}px)`,
+            gridTemplateRows: `repeat(${puzzle.row_clues.length}, ${boardCellSize}px)`,
+          }}
+        >
+          {puzzle.row_clues.flatMap((rowClue, puzzleRowIndex) =>
+            Array.from({ length: maxRowClueSlots }, (_, clueColumnIndex) => {
+              const displayRowClue = rowClue.length === 0 ? [0] : rowClue;
+              const clueValue = displayRowClue[displayRowClue.length - maxRowClueSlots + clueColumnIndex] ?? "";
+              return (
+                <span
+                  key={`row-${puzzleRowIndex}-${clueColumnIndex}`}
+                  className={[
+                    "clue-cell",
+                    solvedRows[puzzleRowIndex] ? "solved" : "",
+                    puzzleRowIndex > 0 && puzzleRowIndex % 5 === 0 ? "major-top" : "",
+                  ]
+                    .filter(Boolean)
+                    .join(" ")}
+                >
+                  {clueValue}
+                </span>
+              );
+            }),
+          )}
+        </div>
+        <div
+          className="play-grid"
+          style={{ gridTemplateColumns: `repeat(${cells[0]?.length ?? 0}, ${boardCellSize}px)` }}
+          onPointerLeave={() => setActiveDrag((current) => ({ ...current, active: false }))}
+        >
+          {cells.map((cellRow, cellRowIndex) =>
+            cellRow.map((cellValue, cellColumnIndex) => (
+              <button
+                key={`${cellRowIndex}-${cellColumnIndex}`}
+                type="button"
                 className={[
-                  "clue-cell",
-                  solvedColumns[columnIndex] ? "solved" : "",
-                  columnIndex > 0 && columnIndex % 5 === 0 ? "major-left" : "",
+                  "cell",
+                  `play-cell-${cellValue}`,
+                  cellRowIndex > 0 && cellRowIndex % 5 === 0 ? "major-top" : "",
+                  cellColumnIndex > 0 && cellColumnIndex % 5 === 0 ? "major-left" : "",
                 ]
                   .filter(Boolean)
                   .join(" ")}
+                onPointerDown={(event) => {
+                  const nextCellValue = resolveNextPlayCell(cellValue, event.button === 2);
+                  setActiveDrag({ active: true, value: nextCellValue });
+                  overwriteCell(cellRowIndex, cellColumnIndex, nextCellValue);
+                }}
+                onPointerEnter={() => {
+                  if (!activeDrag.active) {
+                    return;
+                  }
+                  overwriteCell(cellRowIndex, cellColumnIndex, activeDrag.value);
+                }}
+                onContextMenu={(event) => {
+                  event.preventDefault();
+                }}
+                aria-label={`cell ${cellRowIndex + 1}-${cellColumnIndex + 1}`}
               >
-                {clueValue}
-              </span>
-            );
-          }),
-        )}
-      </div>
-      <div
-        className="row-clues"
-        style={{
-          width: rowClueAreaWidth,
-          gridTemplateColumns: `repeat(${maxRowClueSlots}, ${boardCellSize}px)`,
-          gridTemplateRows: `repeat(${puzzle.row_clues.length}, ${boardCellSize}px)`,
-        }}
-      >
-        {puzzle.row_clues.flatMap((rowClue, puzzleRowIndex) =>
-          Array.from({ length: maxRowClueSlots }, (_, clueColumnIndex) => {
-            const displayRowClue = rowClue.length === 0 ? [0] : rowClue;
-            const clueValue = displayRowClue[displayRowClue.length - maxRowClueSlots + clueColumnIndex] ?? "";
-            return (
-              <span
-                key={`row-${puzzleRowIndex}-${clueColumnIndex}`}
-                className={[
-                  "clue-cell",
-                  solvedRows[puzzleRowIndex] ? "solved" : "",
-                  puzzleRowIndex > 0 && puzzleRowIndex % 5 === 0 ? "major-top" : "",
-                ]
-                  .filter(Boolean)
-                  .join(" ")}
-              >
-                {clueValue}
-              </span>
-            );
-          }),
-        )}
-      </div>
-      <div
-        className="play-grid"
-        style={{ gridTemplateColumns: `repeat(${cells[0]?.length ?? 0}, ${boardCellSize}px)` }}
-        onPointerLeave={() => setActiveDrag((current) => ({ ...current, active: false }))}
-      >
-        {cells.map((cellRow, cellRowIndex) =>
-          cellRow.map((cellValue, cellColumnIndex) => (
-            <button
-              key={`${cellRowIndex}-${cellColumnIndex}`}
-              type="button"
-              className={[
-                "cell",
-                `play-cell-${cellValue}`,
-                cellRowIndex > 0 && cellRowIndex % 5 === 0 ? "major-top" : "",
-                cellColumnIndex > 0 && cellColumnIndex % 5 === 0 ? "major-left" : "",
-              ]
-                .filter(Boolean)
-                .join(" ")}
-              onPointerDown={(event) => {
-                const nextCellValue = resolveNextPlayCell(cellValue, event.button === 2);
-                setActiveDrag({ active: true, value: nextCellValue });
-                overwriteCell(cellRowIndex, cellColumnIndex, nextCellValue);
-              }}
-              onPointerEnter={() => {
-                if (!activeDrag.active) {
-                  return;
-                }
-                overwriteCell(cellRowIndex, cellColumnIndex, activeDrag.value);
-              }}
-              onContextMenu={(event) => {
-                event.preventDefault();
-              }}
-              aria-label={`cell ${cellRowIndex + 1}-${cellColumnIndex + 1}`}
-            >
-              {cellValue === "crossed" ? "×" : ""}
-            </button>
-          )),
-        )}
+                {cellValue === "crossed" ? "×" : ""}
+              </button>
+            )),
+          )}
+        </div>
       </div>
     </div>
   );

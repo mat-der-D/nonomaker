@@ -663,11 +663,39 @@ button { cursor: pointer; }
 }
 
 /* ── Puzzle board ──────────────────────────────────────────── */
+.puzzle-board-viewport {
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+}
+
 .puzzle-board {
   display: grid;
   gap: 6px;
   align-items: start;
   width: max-content;
+}
+
+.sticky-corner,
+.sticky-top,
+.sticky-left {
+  position: sticky;
+}
+
+.sticky-corner {
+  top: 0;
+  left: 0;
+  z-index: 4;
+}
+
+.sticky-top {
+  top: 0;
+  z-index: 3;
+}
+
+.sticky-left {
+  left: 0;
+  z-index: 2;
 }
 
 .puzzle-corner,
@@ -691,6 +719,12 @@ button { cursor: pointer; }
   overflow: hidden;
 }
 
+.puzzle-corner {
+  background: #2b3644;
+}
+
+.column-clues,
+.row-clues,
 .puzzle-corner {
   background: #2b3644;
 }
