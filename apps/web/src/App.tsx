@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState, type CSSProperties, type PointerE
 import { EditorGrid, type EditorTool } from "./components/EditorGrid";
 import { PuzzleBoard, type PlayCell } from "./components/PuzzleBoard";
 import { useWasm } from "./hooks/useWasm";
-import { createGrid, equalGrid, puzzleDimensions } from "./utils/grid";
+import { createGrid, equalGrid, maxClueDepth, puzzleDimensions } from "./utils/grid";
 import {
   gridToId,
   gridToPuzzle,
@@ -29,7 +29,7 @@ interface CheckDialogState {
   solution: Solution | null;
 }
 
-type ExportFormat = "puzzle-json" | "solution-json" | "solution-svg" | "solution-png";
+type ExportFormat = "puzzle-png" | "puzzle-solution-png" | "puzzle-json" | "solution-json";
 
 interface ExportDialogState {
   open: boolean;
@@ -50,10 +50,10 @@ const exportOptions: Array<{
   label: string;
   description: string;
 }> = [
-  { id: "puzzle-json", label: "問題 JSON", description: "プレイヤー向けの問題データだけを保存します。" },
+  { id: "puzzle-png", label: "問題 PNG", description: "プレイヤー向けの問題盤面を PNG 画像で保存します。" },
+  { id: "puzzle-solution-png", label: "問題 + 解答 PNG", description: "問題盤面と解答を載せた PNG 画像を保存します。" },
+  { id: "puzzle-json", label: "問題 JSON", description: "プレイヤー向けの問題データを JSON で保存します。" },
   { id: "solution-json", label: "解答 JSON", description: "完成した盤面データを JSON で保存します。" },
-  { id: "solution-svg", label: "解答 SVG", description: "完成盤面をベクター画像で保存します。" },
-  { id: "solution-png", label: "解答 PNG", description: "完成盤面を PNG 画像で保存します。" },
 ];
 
 export default function App() {
@@ -94,7 +94,7 @@ function MakerPage() {
   const [imageModalOpen, setImageModalOpen] = useState(false);
   const [exportDialog, setExportDialog] = useState<ExportDialogState>({
     open: false,
-    selected: "puzzle-json",
+    selected: "puzzle-png",
   });
   const [checkDialog, setCheckDialog] = useState<CheckDialogState>({
     open: false,
@@ -232,6 +232,20 @@ function MakerPage() {
 
   async function exportArtifact(format: ExportFormat) {
     try {
+      if (format === "puzzle-png") {
+        const puzzle = await gridToPuzzle(grid);
+        downloadBlob("puzzle.png", await renderPuzzlePng(puzzle), "image/png");
+        setAnalysis((current) => ({ ...current, message: "問題 PNG を出力しました。" }));
+        return;
+      }
+
+      if (format === "puzzle-solution-png") {
+        const puzzle = await gridToPuzzle(grid);
+        downloadBlob("puzzle-with-solution.png", await renderPuzzlePng(puzzle, grid), "image/png");
+        setAnalysis((current) => ({ ...current, message: "問題 + 解答 PNG を出力しました。" }));
+        return;
+      }
+
       if (format === "puzzle-json") {
         const puzzle = await gridToPuzzle(grid);
         downloadBlob("puzzle.json", JSON.stringify(puzzle), "application/json");
@@ -244,15 +258,6 @@ function MakerPage() {
         setAnalysis((current) => ({ ...current, message: "解答 JSON を出力しました。" }));
         return;
       }
-
-      if (format === "solution-svg") {
-        downloadBlob("solution.svg", renderGridSvg(grid), "image/svg+xml");
-        setAnalysis((current) => ({ ...current, message: "解答 SVG を出力しました。" }));
-        return;
-      }
-
-      downloadBlob("solution.png", await renderGridPng(grid), "image/png");
-      setAnalysis((current) => ({ ...current, message: "解答 PNG を出力しました。" }));
     } catch (error) {
       setAnalysis((current) => ({ ...current, message: String(error) }));
     }
@@ -1266,40 +1271,68 @@ function downloadBlob(name: string, data: BlobPart, type: string) {
   URL.revokeObjectURL(url);
 }
 
-function renderGridSvg(grid: Grid) {
+async function renderPuzzlePng(puzzle: Puzzle, solutionGrid?: Grid) {
   const size = 24;
-  const width = grid[0].length * size;
-  const height = grid.length * size;
-  const cells = grid
-    .flatMap((row, rowIndex) =>
-      row.map((cell, colIndex) =>
-        `<rect x="${colIndex * size}" y="${rowIndex * size}" width="${size}" height="${size}" fill="${cell ? "#1f2937" : "#fff7ed"}" stroke="#d6c6b8" />`,
-      ),
-    )
-    .join("");
-
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">${cells}</svg>`;
-}
-
-async function renderGridPng(grid: Grid) {
-  const size = 24;
+  const { maxRowClueSlots, maxColClueSlots } = maxClueDepth(puzzle);
+  const rowClueAreaWidth = maxRowClueSlots * size;
+  const colClueAreaHeight = maxColClueSlots * size;
+  const boardWidth = puzzle.col_clues.length * size;
+  const boardHeight = puzzle.row_clues.length * size;
   const canvas = document.createElement("canvas");
-  canvas.width = grid[0].length * size;
-  canvas.height = grid.length * size;
+  canvas.width = rowClueAreaWidth + boardWidth;
+  canvas.height = colClueAreaHeight + boardHeight;
   const context = canvas.getContext("2d");
   if (!context) {
     throw new Error("canvas context を取得できません。");
   }
 
-  context.fillStyle = "#fff7ed";
+  context.fillStyle = "#d8d8d8";
   context.fillRect(0, 0, canvas.width, canvas.height);
+  context.fillStyle = "#2b3644";
+  context.fillRect(0, 0, rowClueAreaWidth, colClueAreaHeight);
+  context.font = `${Math.round(size * 0.5)}px "DM Mono", monospace`;
+  context.textAlign = "center";
+  context.textBaseline = "middle";
 
-  for (let row = 0; row < grid.length; row += 1) {
-    for (let col = 0; col < grid[0].length; col += 1) {
-      context.fillStyle = grid[row][col] ? "#1f2937" : "#fff7ed";
-      context.fillRect(col * size, row * size, size, size);
-      context.strokeStyle = "#d6c6b8";
-      context.strokeRect(col * size, row * size, size, size);
+  for (let row = 0; row < puzzle.row_clues.length; row += 1) {
+    const displayRowClue = puzzle.row_clues[row].length === 0 ? [0] : puzzle.row_clues[row];
+    for (let slot = 0; slot < maxRowClueSlots; slot += 1) {
+      const x = slot * size;
+      const y = colClueAreaHeight + row * size;
+      const clueValue = displayRowClue[displayRowClue.length - maxRowClueSlots + slot];
+      context.fillStyle = "#2b3644";
+      context.fillRect(x, y, size, size);
+      drawCellBorder(context, x, y, size, row > 0 && row % 5 === 0, false);
+      if (clueValue !== undefined) {
+        context.fillStyle = "#e6edf3";
+        context.fillText(String(clueValue), x + size / 2, y + size / 2);
+      }
+    }
+  }
+
+  for (let col = 0; col < puzzle.col_clues.length; col += 1) {
+    const displayColumnClue = puzzle.col_clues[col].length === 0 ? [0] : puzzle.col_clues[col];
+    for (let slot = 0; slot < maxColClueSlots; slot += 1) {
+      const x = rowClueAreaWidth + col * size;
+      const y = slot * size;
+      const clueValue = displayColumnClue[displayColumnClue.length - maxColClueSlots + slot];
+      context.fillStyle = "#2b3644";
+      context.fillRect(x, y, size, size);
+      drawCellBorder(context, x, y, size, false, col > 0 && col % 5 === 0);
+      if (clueValue !== undefined) {
+        context.fillStyle = "#e6edf3";
+        context.fillText(String(clueValue), x + size / 2, y + size / 2);
+      }
+    }
+  }
+
+  for (let row = 0; row < puzzle.row_clues.length; row += 1) {
+    for (let col = 0; col < puzzle.col_clues.length; col += 1) {
+      const x = rowClueAreaWidth + col * size;
+      const y = colClueAreaHeight + row * size;
+      context.fillStyle = solutionGrid?.[row]?.[col] ? "#1a1a1a" : "#d8d8d8";
+      context.fillRect(x, y, size, size);
+      drawCellBorder(context, x, y, size, row > 0 && row % 5 === 0, col > 0 && col % 5 === 0);
     }
   }
 
@@ -1312,4 +1345,35 @@ async function renderGridPng(grid: Grid) {
       }
     }, "image/png");
   });
+}
+
+function drawCellBorder(
+  context: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  size: number,
+  majorTop: boolean,
+  majorLeft: boolean,
+) {
+  context.strokeStyle = "#1f2937";
+  context.lineWidth = 1;
+  context.strokeRect(x, y, size, size);
+
+  if (majorTop) {
+    context.strokeStyle = "rgba(17, 24, 39, 0.8)";
+    context.lineWidth = 2;
+    context.beginPath();
+    context.moveTo(x, y + 0.5);
+    context.lineTo(x + size, y + 0.5);
+    context.stroke();
+  }
+
+  if (majorLeft) {
+    context.strokeStyle = "rgba(17, 24, 39, 0.8)";
+    context.lineWidth = 2;
+    context.beginPath();
+    context.moveTo(x + 0.5, y);
+    context.lineTo(x + 0.5, y + size);
+    context.stroke();
+  }
 }
