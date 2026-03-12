@@ -92,7 +92,13 @@ export function PuzzleBoard({
             return (
               <span
                 key={`col-${columnIndex}-${clueRowIndex}`}
-                className={`clue-cell ${solvedColumns[columnIndex] ? "solved" : ""}`}
+                className={[
+                  "clue-cell",
+                  solvedColumns[columnIndex] ? "solved" : "",
+                  columnIndex > 0 && columnIndex % 5 === 0 ? "major-left" : "",
+                ]
+                  .filter(Boolean)
+                  .join(" ")}
               >
                 {clueValue}
               </span>
@@ -114,7 +120,13 @@ export function PuzzleBoard({
             return (
               <span
                 key={`row-${puzzleRowIndex}-${clueColumnIndex}`}
-                className={`clue-cell ${solvedRows[puzzleRowIndex] ? "solved" : ""}`}
+                className={[
+                  "clue-cell",
+                  solvedRows[puzzleRowIndex] ? "solved" : "",
+                  puzzleRowIndex > 0 && puzzleRowIndex % 5 === 0 ? "major-top" : "",
+                ]
+                  .filter(Boolean)
+                  .join(" ")}
               >
                 {clueValue}
               </span>
@@ -132,7 +144,14 @@ export function PuzzleBoard({
             <button
               key={`${cellRowIndex}-${cellColumnIndex}`}
               type="button"
-              className={["cell", `play-cell-${cellValue}`].join(" ")}
+              className={[
+                "cell",
+                `play-cell-${cellValue}`,
+                cellRowIndex > 0 && cellRowIndex % 5 === 0 ? "major-top" : "",
+                cellColumnIndex > 0 && cellColumnIndex % 5 === 0 ? "major-left" : "",
+              ]
+                .filter(Boolean)
+                .join(" ")}
               onPointerDown={(event) => {
                 const nextCellValue = resolveNextPlayCell(cellValue, event.button === 2);
                 setActiveDrag({ active: true, value: nextCellValue });

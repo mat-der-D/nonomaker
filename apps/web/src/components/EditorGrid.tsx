@@ -55,7 +55,15 @@ export function EditorGrid({
             <button
               key={`${rowIndex}-${colIndex}`}
               type="button"
-              className={`cell ${cell ? "filled" : ""} ${marks?.[rowIndex]?.[colIndex] ? "marked" : ""}`}
+              className={[
+                "cell",
+                cell ? "filled" : "",
+                marks?.[rowIndex]?.[colIndex] ? "marked" : "",
+                rowIndex > 0 && rowIndex % 5 === 0 ? "major-top" : "",
+                colIndex > 0 && colIndex % 5 === 0 ? "major-left" : "",
+              ]
+                .filter(Boolean)
+                .join(" ")}
               onContextMenu={(event) => {
                 event.preventDefault();
                 if (readOnly) {

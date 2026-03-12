@@ -15,6 +15,8 @@
   --amber-dim:  rgba(240, 180, 41, 0.18);
   --amber-glow: rgba(240, 180, 41, 0.08);
   --red:        #f85149;
+  --grid-line:  rgba(17, 24, 39, 0.18);
+  --grid-major: rgba(17, 24, 39, 0.4);
 
   font-family: "DM Sans", sans-serif;
   color: var(--text);
@@ -305,11 +307,11 @@ button { cursor: pointer; }
 .editor-grid,
 .play-grid {
   display: grid;
-  gap: 1px;
-  background: var(--border-2);
-  border: 2px solid var(--border-2);
-  border-radius: 6px;
-  padding: 1px;
+  gap: 0;
+  background: transparent;
+  border: 1px solid var(--grid-line);
+  border-radius: 0;
+  padding: 0;
   overflow: hidden;
   box-shadow: 0 4px 24px rgba(0,0,0,0.5);
 }
@@ -326,13 +328,39 @@ button { cursor: pointer; }
   font-family: "DM Mono", monospace;
   touch-action: none;
   transition: background 0.06s;
+  box-shadow:
+    inset 1px 0 0 var(--grid-line),
+    inset 0 1px 0 var(--grid-line);
 }
 
 .cell:hover { background: #c4c4c4; }
 
+.cell.major-top,
+.clue-cell.major-top {
+  box-shadow:
+    inset 1px 0 0 var(--grid-line),
+    inset 0 2px 0 var(--grid-major);
+}
+
+.cell.major-left,
+.clue-cell.major-left {
+  box-shadow:
+    inset 2px 0 0 var(--grid-major),
+    inset 0 1px 0 var(--grid-line);
+}
+
+.cell.major-top.major-left,
+.clue-cell.major-top.major-left {
+  box-shadow:
+    inset 2px 0 0 var(--grid-major),
+    inset 0 2px 0 var(--grid-major);
+}
+
 .cell.filled {
   background: #1a1a1a;
   color: #d8d8d8;
+  outline: 1px solid rgba(255, 255, 255, 0.16);
+  outline-offset: -1px;
 }
 
 .cell.marked { color: #cc2222; }
@@ -352,6 +380,8 @@ button { cursor: pointer; }
 .play-grid .cell.play-cell-filled {
   background: #1a1a1a;
   color: #d8d8d8;
+  outline: 1px solid rgba(255, 255, 255, 0.16);
+  outline-offset: -1px;
 }
 
 .play-grid .cell.play-cell-crossed {
@@ -370,26 +400,26 @@ button { cursor: pointer; }
 .puzzle-corner,
 .column-clues {
   display: grid;
-  gap: 1px;
-  background: var(--border-2);
-  border: 2px solid var(--border-2);
-  border-radius: 6px;
-  padding: 1px;
+  gap: 0;
+  background: transparent;
+  border: 1px solid var(--grid-line);
+  border-radius: 0;
+  padding: 0;
   overflow: hidden;
 }
 
 .row-clues {
   display: grid;
-  gap: 1px;
-  background: var(--border-2);
-  border: 2px solid var(--border-2);
-  border-radius: 6px;
-  padding: 1px;
+  gap: 0;
+  background: transparent;
+  border: 1px solid var(--grid-line);
+  border-radius: 0;
+  padding: 0;
   overflow: hidden;
 }
 
 .puzzle-corner {
-  background: var(--bg-2);
+  background: #2b3644;
 }
 
 .clue-cell {
@@ -398,7 +428,7 @@ button { cursor: pointer; }
   text-align: center;
   width: 32px;
   height: 32px;
-  background: var(--bg-2);
+  background: #2b3644;
   color: var(--text);
   font-family: "DM Mono", monospace;
   font-size: 0.95rem;
@@ -406,6 +436,9 @@ button { cursor: pointer; }
   line-height: 1;
   justify-self: stretch;
   align-self: stretch;
+  box-shadow:
+    inset 1px 0 0 var(--grid-line),
+    inset 0 1px 0 var(--grid-line);
 }
 
 .clue-cell.solved {
