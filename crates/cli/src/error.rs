@@ -3,6 +3,9 @@ use std::fmt;
 pub enum CliError {
     Io(std::io::Error),
     Format(nonomaker_core::format::FormatError),
+    Parse(String),
+    Validation(String),
+    ImageDecode(String),
 }
 
 impl fmt::Display for CliError {
@@ -10,6 +13,9 @@ impl fmt::Display for CliError {
         match self {
             CliError::Io(e) => write!(f, "io error: {e}"),
             CliError::Format(e) => write!(f, "format error: {e}"),
+            CliError::Parse(msg) => write!(f, "parse error: {msg}"),
+            CliError::Validation(msg) => write!(f, "validation error: {msg}"),
+            CliError::ImageDecode(msg) => write!(f, "image decode error: {msg}"),
         }
     }
 }

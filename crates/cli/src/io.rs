@@ -17,6 +17,10 @@ pub fn read_input(path: Option<&Path>) -> Result<String, CliError> {
     }
 }
 
+pub fn read_bytes(path: &Path) -> Result<Vec<u8>, CliError> {
+    Ok(fs::read(path)?)
+}
+
 pub fn write_output(path: Option<&Path>, content: &str) -> Result<(), CliError> {
     match path {
         None => {
