@@ -1268,23 +1268,8 @@ button { cursor: pointer; }
 
 .play-main {
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
-  gap: 12px;
+  grid-template-rows: minmax(0, 1fr);
   min-height: 0;
-}
-
-.play-toolbar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-
-.play-actions {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
 }
 
 .play-board-panel {
@@ -1300,6 +1285,10 @@ button { cursor: pointer; }
   gap: 14px;
   min-height: 0;
   overflow: auto;
+}
+
+.play-reset-button {
+  margin-top: 2px;
 }
 
 .play-stats {
@@ -1374,9 +1363,5 @@ button { cursor: pointer; }
   }
   .toolbox-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-
-  .play-toolbar {
-    align-items: stretch;
   }
 }

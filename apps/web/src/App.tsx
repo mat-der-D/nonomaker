@@ -1122,13 +1122,6 @@ function PlayPage({ id }: { id: string }) {
       </header>
       <section className="play-layout">
         <div className="play-main">
-          <div className="play-toolbar card">
-            <div className="play-actions">
-              <button type="button" className="btn btn-ghost" onClick={resetBoard}>
-                リセット
-              </button>
-            </div>
-          </div>
           <div className="editor-panel play-board-panel">
             <PuzzleBoard
               puzzle={puzzle}
@@ -1141,6 +1134,13 @@ function PlayPage({ id }: { id: string }) {
         <div className="card play-sidebar">
           <h2>Play</h2>
           <p>{statusMessage}</p>
+          <button
+            type="button"
+            className="btn btn-ghost play-reset-button"
+            onClick={() => window.confirm("盤面をリセットしますか？") && resetBoard()}
+          >
+            リセット
+          </button>
           <div className="play-stats">
             <div className="play-scale-control">
               <label className="number-field">
