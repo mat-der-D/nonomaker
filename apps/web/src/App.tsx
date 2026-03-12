@@ -29,6 +29,13 @@ interface CheckDialogState {
   solution: Solution | null;
 }
 
+type ExportFormat = "puzzle-json" | "solution-json" | "solution-svg" | "solution-png";
+
+interface ExportDialogState {
+  open: boolean;
+  selected: ExportFormat;
+}
+
 const defaultImageParams: ImageToGridParams = {
   smooth_strength: 1,
   threshold: 128,
@@ -37,6 +44,17 @@ const defaultImageParams: ImageToGridParams = {
   grid_width: 20,
   grid_height: 20,
 };
+
+const exportOptions: Array<{
+  id: ExportFormat;
+  label: string;
+  description: string;
+}> = [
+  { id: "puzzle-json", label: "問題 JSON", description: "プレイヤー向けの問題データだけを保存します。" },
+  { id: "solution-json", label: "解答 JSON", description: "完成した盤面データを JSON で保存します。" },
+  { id: "solution-svg", label: "解答 SVG", description: "完成盤面をベクター画像で保存します。" },
+  { id: "solution-png", label: "解答 PNG", description: "完成盤面を PNG 画像で保存します。" },
+];
 
 export default function App() {
   const wasm = useWasm();
@@ -74,6 +92,10 @@ function MakerPage() {
   const [busy, setBusy] = useState<string | null>(null);
   const [shareUrl, setShareUrl] = useState("");
   const [imageModalOpen, setImageModalOpen] = useState(false);
+  const [exportDialog, setExportDialog] = useState<ExportDialogState>({
+    open: false,
+    selected: "puzzle-json",
+  });
   const [checkDialog, setCheckDialog] = useState<CheckDialogState>({
     open: false,
     status: "running",
@@ -208,14 +230,29 @@ function MakerPage() {
     }
   }
 
-  async function exportArtifacts() {
+  async function exportArtifact(format: ExportFormat) {
     try {
-      const puzzle = await gridToPuzzle(grid);
-      downloadBlob("puzzle.json", JSON.stringify(puzzle), "application/json");
-      downloadBlob("solution.json", JSON.stringify(grid), "application/json");
-      downloadBlob("solution.svg", renderGridSvg(grid), "image/svg+xml");
+      if (format === "puzzle-json") {
+        const puzzle = await gridToPuzzle(grid);
+        downloadBlob("puzzle.json", JSON.stringify(puzzle), "application/json");
+        setAnalysis((current) => ({ ...current, message: "問題 JSON を出力しました。" }));
+        return;
+      }
+
+      if (format === "solution-json") {
+        downloadBlob("solution.json", JSON.stringify(grid), "application/json");
+        setAnalysis((current) => ({ ...current, message: "解答 JSON を出力しました。" }));
+        return;
+      }
+
+      if (format === "solution-svg") {
+        downloadBlob("solution.svg", renderGridSvg(grid), "image/svg+xml");
+        setAnalysis((current) => ({ ...current, message: "解答 SVG を出力しました。" }));
+        return;
+      }
+
       downloadBlob("solution.png", await renderGridPng(grid), "image/png");
-      setAnalysis((current) => ({ ...current, message: "JSON / SVG / PNG を出力しました。" }));
+      setAnalysis((current) => ({ ...current, message: "解答 PNG を出力しました。" }));
     } catch (error) {
       setAnalysis((current) => ({ ...current, message: String(error) }));
     }
@@ -398,7 +435,12 @@ function MakerPage() {
         <div className="toolbar-section toolbar-section-wide">
           <p className="toolbar-title">Export</p>
           <div className="toolbar-group">
-            <button type="button" className="btn btn-subtle" onClick={() => void exportArtifacts()} disabled={!exportAllowed}>
+            <button
+              type="button"
+              className="btn btn-subtle"
+              onClick={() => setExportDialog((current) => ({ ...current, open: true }))}
+              disabled={!exportAllowed}
+            >
               ファイル出力
             </button>
             <button type="button" className="btn btn-ghost" onClick={() => void generateShare()} disabled={!exportAllowed}>
@@ -535,6 +577,20 @@ function MakerPage() {
           onClose={() => setCheckDialog((current) => ({ ...current, open: false }))}
         />
       )}
+
+      {exportDialog.open && (
+        <ExportFormatModal
+          selected={exportDialog.selected}
+          options={exportOptions}
+          onSelect={(selected) => setExportDialog({ open: true, selected })}
+          onClose={() => setExportDialog((current) => ({ ...current, open: false }))}
+          onConfirm={() => {
+            const { selected } = exportDialog;
+            setExportDialog((current) => ({ ...current, open: false }));
+            void exportArtifact(selected);
+          }}
+        />
+      )}
     </div>
   );
 }
@@ -620,6 +676,65 @@ function CheckResultModal({
                 閉じる
               </button>
             )}
+          </div>
+        </footer>
+      </section>
+    </div>
+  );
+}
+
+function ExportFormatModal({
+  selected,
+  options,
+  onSelect,
+  onClose,
+  onConfirm,
+}: {
+  selected: ExportFormat;
+  options: typeof exportOptions;
+  onSelect: (format: ExportFormat) => void;
+  onClose: () => void;
+  onConfirm: () => void;
+}) {
+  return (
+    <div className="modal-backdrop" role="presentation" onClick={onClose}>
+      <section className="modal-card export-modal" onClick={(event) => event.stopPropagation()}>
+        <header className="modal-header">
+          <div>
+            <p className="eyebrow">Export</p>
+            <h2>保存形式を選択</h2>
+          </div>
+          <button type="button" className="btn btn-ghost" onClick={onClose}>
+            閉じる ×
+          </button>
+        </header>
+
+        <div className="export-modal-body">
+          {options.map((option) => (
+            <label key={option.id} className={`export-option ${option.id === selected ? "active" : ""}`}>
+              <input
+                type="radio"
+                name="export-format"
+                checked={option.id === selected}
+                onChange={() => onSelect(option.id)}
+              />
+              <div>
+                <strong>{option.label}</strong>
+                <p>{option.description}</p>
+              </div>
+            </label>
+          ))}
+        </div>
+
+        <footer className="modal-footer">
+          <p className="modal-status">1 つだけ選んで保存します。</p>
+          <div className="toolbar-group">
+            <button type="button" className="btn btn-ghost" onClick={onClose}>
+              キャンセル
+            </button>
+            <button type="button" className="btn btn-primary" onClick={onConfirm}>
+              保存
+            </button>
           </div>
         </footer>
       </section>

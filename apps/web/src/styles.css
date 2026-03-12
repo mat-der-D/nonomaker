@@ -702,6 +702,50 @@ button { cursor: pointer; }
   width: min(680px, 100%);
 }
 
+.export-modal {
+  width: min(560px, 100%);
+}
+
+.export-modal-body {
+  display: grid;
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.export-option {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+  padding: 14px 16px;
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease, transform 0.15s ease;
+}
+
+.export-option:hover,
+.export-option.active {
+  background: var(--bg-3);
+  border-color: var(--amber);
+  transform: translateY(-1px);
+}
+
+.export-option input {
+  margin-top: 3px;
+}
+
+.export-option strong {
+  display: block;
+  color: var(--text);
+}
+
+.export-option p {
+  margin: 4px 0 0;
+  color: var(--text-2);
+}
+
 .check-modal-body {
   display: grid;
   gap: 14px;
