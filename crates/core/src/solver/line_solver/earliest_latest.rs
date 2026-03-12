@@ -29,9 +29,6 @@ fn compute_earliest(line: &LineBits, blocks: &[usize]) -> Result<Vec<usize>, Con
             if line.can_place_block(pos, len) {
                 break;
             }
-            if line.cell(pos) == Cell::Filled {
-                return Err(Contradiction);
-            }
             pos += 1;
         }
         earliest_start.push(pos);
@@ -58,9 +55,6 @@ fn compute_latest(line: &LineBits, blocks: &[usize]) -> Result<Vec<usize>, Contr
                 break;
             }
             pos -= 1;
-            if line.cell(pos) == Cell::Filled {
-                return Err(Contradiction);
-            }
         }
         if j > 0 {
             let Some(p) = latest_start[j].checked_sub(1) else {
