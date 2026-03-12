@@ -833,8 +833,20 @@ button { cursor: pointer; }
   width: min(560px, 100%);
 }
 
+.progress-modal {
+  width: min(420px, 100%);
+}
+
 .share-modal-body {
   margin-top: 18px;
+}
+
+.progress-modal-body {
+  margin-top: 18px;
+}
+
+.progress-status-panel {
+  margin-bottom: 0;
 }
 
 .export-modal-body {

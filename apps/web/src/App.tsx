@@ -110,6 +110,7 @@ function MakerPage() {
     solution: null,
   });
   const checkRunRef = useRef(0);
+  const importRunRef = useRef(0);
   const canvasViewportRef = useRef<HTMLDivElement | null>(null);
   const panStateRef = useRef<{
     pointerId: number;
@@ -273,21 +274,40 @@ function MakerPage() {
     }
 
     if (isPuzzle(parsed)) {
+      importRunRef.current += 1;
+      const runId = importRunRef.current;
       setBusy("import");
       try {
         const solution = await solveComplete(parsed, "fp2-backtracking");
+        if (runId !== importRunRef.current) {
+          return;
+        }
         if (solution.status !== "unique") {
           throw new Error("読み込んだ問題は一意解ではありません。");
         }
         commit(solution.grids[0]);
         setAnalysis((current) => ({ ...current, message: "問題JSONを読み込みました。" }));
+      } catch (error) {
+        if (runId !== importRunRef.current) {
+          return;
+        }
+        setAnalysis((current) => ({ ...current, message: String(error) }));
       } finally {
-        setBusy(null);
+        if (runId === importRunRef.current) {
+          setBusy(null);
+        }
       }
       return;
     }
 
     throw new Error("サポートしていない JSON 形式です。");
+  }
+
+  function cancelImport() {
+    importRunRef.current += 1;
+    terminateWorker();
+    setBusy(null);
+    setAnalysis((current) => ({ ...current, message: "JSON 読み込みを中止しました。" }));
   }
 
   const exportAllowed = analysis.solution?.status === "unique";
@@ -432,7 +452,17 @@ function MakerPage() {
             </button>
             <label className="file-button btn btn-subtle">
               JSON 読み込み
-              <input type="file" accept=".json,application/json" onChange={(event) => event.target.files?.[0] && void importJson(event.target.files[0])} />
+              <input
+                type="file"
+                accept=".json,application/json"
+                onChange={(event) => {
+                  const file = event.target.files?.[0];
+                  event.target.value = "";
+                  if (file) {
+                    void importJson(file);
+                  }
+                }}
+              />
             </label>
           </div>
         </div>
@@ -632,6 +662,14 @@ function MakerPage() {
           onClose={() => setShareDialog((current) => ({ ...current, open: false }))}
         />
       )}
+
+      {busy === "import" && (
+        <ProgressModal
+          title="JSON 読み込み"
+          message="問題を解析して盤面を復元しています。"
+          onCancel={cancelImport}
+        />
+      )}
     </div>
   );
 }
@@ -725,6 +763,48 @@ function ShareModal({
             </button>
             <button type="button" className="btn btn-primary" onClick={onClose}>
               閉じる
+            </button>
+          </div>
+        </footer>
+      </section>
+    </div>
+  );
+}
+
+function ProgressModal({
+  title,
+  message,
+  onCancel,
+}: {
+  title: string;
+  message: string;
+  onCancel: () => void;
+}) {
+  return (
+    <div className="modal-backdrop" role="presentation">
+      <section className="modal-card progress-modal" onClick={(event) => event.stopPropagation()}>
+        <header className="modal-header">
+          <div>
+            <p className="eyebrow">Processing</p>
+            <h2>{title}</h2>
+          </div>
+        </header>
+
+        <div className="progress-modal-body">
+          <div className="check-status-panel side-check-status progress-status-panel">
+            <div className="check-status-icon running">◌</div>
+            <div className="side-check-status-copy">
+              <p className="check-status-label">処理中</p>
+              <p className="modal-status">{message}</p>
+            </div>
+          </div>
+        </div>
+
+        <footer className="modal-footer">
+          <p className="modal-status">時間がかかる場合は中止できます。</p>
+          <div className="toolbar-group">
+            <button type="button" className="btn btn-ghost" onClick={onCancel}>
+              中止
             </button>
           </div>
         </footer>
