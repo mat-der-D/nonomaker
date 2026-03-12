@@ -161,6 +161,10 @@ button { cursor: pointer; }
   min-width: 0;
 }
 
+.tooltip-trigger {
+  display: inline-flex;
+}
+
 .canvas-toolbar-group {
   flex-wrap: nowrap;
 }

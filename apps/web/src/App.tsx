@@ -469,6 +469,7 @@ function MakerPage() {
               <input
                 type="file"
                 accept=".json,application/json"
+                title=""
                 onChange={(event) => {
                   const file = event.target.files?.[0];
                   event.target.value = "";
@@ -484,17 +485,27 @@ function MakerPage() {
         <div className="toolbar-section toolbar-section-wide">
           <p className="toolbar-title">Export</p>
           <div className="toolbar-group">
-            <button
-              type="button"
-              className="btn btn-subtle"
-              onClick={() => setExportDialog((current) => ({ ...current, open: true }))}
-              disabled={!exportAllowed}
+            <span
+              className="tooltip-trigger"
+              title={!exportAllowed ? "解答チェックで一意解を確認すると使えます。" : undefined}
             >
-              ファイル出力
-            </button>
-            <button type="button" className="btn btn-ghost" onClick={() => void generateShare()} disabled={!exportAllowed}>
-              共有
-            </button>
+              <button
+                type="button"
+                className="btn btn-subtle"
+                onClick={() => setExportDialog((current) => ({ ...current, open: true }))}
+                disabled={!exportAllowed}
+              >
+                ファイル出力
+              </button>
+            </span>
+            <span
+              className="tooltip-trigger"
+              title={!exportAllowed ? "解答チェックで一意解を確認すると使えます。" : undefined}
+            >
+              <button type="button" className="btn btn-primary" onClick={() => void generateShare()} disabled={!exportAllowed}>
+                共有
+              </button>
+            </span>
           </div>
         </div>
       </section>
