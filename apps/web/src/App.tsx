@@ -44,6 +44,8 @@ interface ShareDialogState {
 }
 
 const makerGuideSeenKey = "nonomaker-maker-guide-seen";
+const makerBoardStateKey = "nonomaker-maker-board-v1";
+const playBoardStatePrefix = "nonomaker-play-board-v1:";
 
 const defaultImageParams: ImageToGridParams = {
   smooth_strength: 1,
@@ -87,7 +89,7 @@ export default function App() {
 }
 
 function MakerPage() {
-  const [grid, setGrid] = useState<Grid>(() => createGrid(20, 20));
+  const [grid, setGrid] = useState<Grid>(() => loadMakerGridFromStorage() ?? createGrid(20, 20));
   const [history, setHistory] = useState<Grid[]>([]);
   const [future, setFuture] = useState<Grid[]>([]);
   const [tool, setTool] = useState<EditorTool>("draw");
@@ -145,6 +147,14 @@ function MakerPage() {
     setGuideOpen(true);
     window.localStorage.setItem(makerGuideSeenKey, "1");
   }, []);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(makerBoardStateKey, JSON.stringify(grid));
+    } catch {
+      // Ignore storage failures so editing stays available.
+    }
+  }, [grid]);
 
   function commit(next: Grid) {
     setHistory((current) => [...current, grid]);
@@ -1272,10 +1282,11 @@ function PlayPage({ id }: { id: string }) {
         const decodedSolutionGrid = await idToGrid(id);
         const nextPuzzle = await gridToPuzzle(decodedSolutionGrid);
         const { width, height } = puzzleDimensions(nextPuzzle);
+        const savedPlayCells = loadPlayGridFromStorage(id, width, height);
         if (!cancelled) {
           setSolutionGrid(decodedSolutionGrid);
           setPuzzle(nextPuzzle);
-          setPlayCells(createPlayGrid(width, height));
+          setPlayCells(savedPlayCells ?? createPlayGrid(width, height));
           setStatusMessage("左クリックで入力、右クリックで反対の記号を置けます。");
         }
       } catch (error) {
@@ -1288,6 +1299,17 @@ function PlayPage({ id }: { id: string }) {
       cancelled = true;
     };
   }, [id]);
+
+  useEffect(() => {
+    if (!playCells) {
+      return;
+    }
+    try {
+      window.localStorage.setItem(playBoardStorageKey(id), JSON.stringify(playCells));
+    } catch {
+      // Ignore storage failures so gameplay stays available.
+    }
+  }, [id, playCells]);
 
   if (!puzzle || !playCells || !solutionGrid) {
     return <div className="screen-state">{statusMessage}</div>;
@@ -1415,6 +1437,10 @@ function createPlayGrid(width: number, height: number): PlayCell[][] {
   return Array.from({ length: height }, () => Array.from({ length: width }, () => "unknown"));
 }
 
+function playBoardStorageKey(id: string) {
+  return `${playBoardStatePrefix}${id}`;
+}
+
 function computePlayStats(playCells: PlayCell[][], solutionGrid: Grid) {
   let targetFilled = 0;
   let correctFilled = 0;
@@ -1470,6 +1496,61 @@ function isGrid(value: unknown): value is Grid {
     Array.isArray(value) &&
     value.every(
       (row) => Array.isArray(row) && row.every((cell) => typeof cell === "boolean"),
+    )
+  );
+}
+
+function loadMakerGridFromStorage(): Grid | null {
+  try {
+    const raw = window.localStorage.getItem(makerBoardStateKey);
+    if (!raw) {
+      return null;
+    }
+    const parsed = JSON.parse(raw) as unknown;
+    if (!isGrid(parsed)) {
+      return null;
+    }
+    if (parsed.length === 0 || parsed[0]?.length === 0) {
+      return null;
+    }
+    if (parsed.length > 50 || parsed[0].length > 50) {
+      return null;
+    }
+    if (parsed.some((row) => row.length !== parsed[0].length)) {
+      return null;
+    }
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+function loadPlayGridFromStorage(id: string, width: number, height: number): PlayCell[][] | null {
+  try {
+    const raw = window.localStorage.getItem(playBoardStorageKey(id));
+    if (!raw) {
+      return null;
+    }
+    const parsed = JSON.parse(raw) as unknown;
+    if (!isPlayGrid(parsed, width, height)) {
+      return null;
+    }
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+function isPlayGrid(value: unknown, width: number, height: number): value is PlayCell[][] {
+  const validCells: PlayCell[] = ["unknown", "filled", "crossed"];
+  return (
+    Array.isArray(value) &&
+    value.length === height &&
+    value.every(
+      (row) =>
+        Array.isArray(row) &&
+        row.length === width &&
+        row.every((cell) => typeof cell === "string" && validCells.includes(cell as PlayCell)),
     )
   );
 }
