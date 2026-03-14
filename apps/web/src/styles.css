@@ -1502,16 +1502,28 @@ button { cursor: pointer; }
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 4px;
   width: min(132px, 100%);
-  margin: 0 auto;
+  margin: 0;
+  justify-self: start;
 }
 
 .mobile-play-pad-btn {
+  display: grid;
   justify-content: center;
+  align-items: center;
   aspect-ratio: 1;
   min-height: 0;
   padding: 0;
   font-size: 0.9rem;
   min-width: 0;
+}
+
+.mobile-play-pad-btn svg,
+.play-menu-button svg,
+.play-menu-close svg,
+.play-scale-fab svg,
+.play-scale-sheet-close svg {
+  width: 1em;
+  height: 1em;
 }
 
 .mobile-play-pad > div {
@@ -1547,18 +1559,13 @@ button { cursor: pointer; }
   height: 100%;
 }
 
-.mobile-play-action-icon-fill::before {
-  content: "";
-  width: 16px;
-  height: 16px;
-  background: currentColor;
-  border-radius: 3px;
+.mobile-play-action-icon svg {
+  width: 1.05rem;
+  height: 1.05rem;
 }
 
-.mobile-play-action-icon-cross {
-  font-family: "DM Mono", monospace;
-  font-size: 1.2rem;
-  line-height: 1;
+.mobile-play-action-icon-fill svg {
+  transform: scale(0.9);
 }
 
 .play-menu-button {

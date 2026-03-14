@@ -1,6 +1,19 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react";
 import { FaFacebook, FaLine } from "react-icons/fa";
-import { FaBluesky, FaXTwitter } from "react-icons/fa6";
+import {
+  FaArrowDown,
+  FaArrowLeft,
+  FaArrowRight,
+  FaArrowUp,
+  FaBars,
+  FaBluesky,
+  FaMinus,
+  FaPlus,
+  FaSquare,
+  FaExpand,
+  FaXTwitter,
+  FaXmark,
+} from "react-icons/fa6";
 import { SiMastodon, SiMisskey } from "react-icons/si";
 import { EditorGrid, type EditorTool } from "./components/EditorGrid";
 import { PuzzleBoard, type PlayCell } from "./components/PuzzleBoard";
@@ -1520,7 +1533,7 @@ function PlayPage({ id }: { id: string }) {
             aria-label="メニューを開く"
             aria-expanded={mobileMenuOpen}
           >
-            ☰
+            <FaBars aria-hidden="true" />
           </button>
         ) : (
           <a className="ghost-link" href="/maker">
@@ -1543,7 +1556,7 @@ function PlayPage({ id }: { id: string }) {
                 onClick={() => setMobileMenuOpen(false)}
                 aria-label="メニューを閉じる"
               >
-                ×
+                <FaXmark aria-hidden="true" />
               </button>
             </div>
             <p>{statusMessage}</p>
@@ -1606,7 +1619,7 @@ function PlayPage({ id }: { id: string }) {
                 onClick={() => setMobileScaleMenuOpen(true)}
                 aria-label="拡大縮小メニューを開く"
               >
-                ⤢
+                <FaExpand aria-hidden="true" />
               </button>
             ) : null}
           </div>
@@ -1619,34 +1632,23 @@ function PlayPage({ id }: { id: string }) {
                 <div className="mobile-play-pad" role="group" aria-label="move selection">
                   <div />
                   <button type="button" className="btn btn-ghost mobile-play-pad-btn" onClick={() => moveSelection(-1, 0)}>
-                    ↑
+                    <FaArrowUp aria-hidden="true" />
                   </button>
                   <div />
                   <button type="button" className="btn btn-ghost mobile-play-pad-btn" onClick={() => moveSelection(0, -1)}>
-                    ←
+                    <FaArrowLeft aria-hidden="true" />
                   </button>
                   <div className="mobile-play-pad-gap" />
                   <button type="button" className="btn btn-ghost mobile-play-pad-btn" onClick={() => moveSelection(0, 1)}>
-                    →
+                    <FaArrowRight aria-hidden="true" />
                   </button>
                   <div />
                   <button type="button" className="btn btn-ghost mobile-play-pad-btn" onClick={() => moveSelection(1, 0)}>
-                    ↓
+                    <FaArrowDown aria-hidden="true" />
                   </button>
                   <div />
                 </div>
                 <div className="mobile-play-action-stack" role="toolbar" aria-label="play actions">
-                  <button
-                    type="button"
-                    className={`btn mobile-play-action-btn ${mobileHeldAction === "filled" ? "btn-primary" : "btn-subtle"}`}
-                    onPointerDown={() => handleMobileActionPress("filled")}
-                    onPointerUp={handleMobileActionRelease}
-                    onPointerCancel={handleMobileActionRelease}
-                    onPointerLeave={handleMobileActionRelease}
-                    aria-label="塗る"
-                  >
-                    <span className="mobile-play-action-icon mobile-play-action-icon-fill" aria-hidden="true" />
-                  </button>
                   <button
                     type="button"
                     className={`btn mobile-play-action-btn ${mobileHeldAction === "crossed" ? "btn-primary" : "btn-subtle"}`}
@@ -1657,7 +1659,20 @@ function PlayPage({ id }: { id: string }) {
                     aria-label="× を置く"
                   >
                     <span className="mobile-play-action-icon mobile-play-action-icon-cross" aria-hidden="true">
-                      ×
+                      <FaXmark />
+                    </span>
+                  </button>
+                  <button
+                    type="button"
+                    className={`btn mobile-play-action-btn ${mobileHeldAction === "filled" ? "btn-primary" : "btn-subtle"}`}
+                    onPointerDown={() => handleMobileActionPress("filled")}
+                    onPointerUp={handleMobileActionRelease}
+                    onPointerCancel={handleMobileActionRelease}
+                    onPointerLeave={handleMobileActionRelease}
+                    aria-label="塗る"
+                  >
+                    <span className="mobile-play-action-icon mobile-play-action-icon-fill" aria-hidden="true">
+                      <FaSquare />
                     </span>
                   </button>
                 </div>
@@ -1738,12 +1753,12 @@ function PlayPage({ id }: { id: string }) {
                 onClick={() => setMobileScaleMenuOpen(false)}
                 aria-label="拡大縮小メニューを閉じる"
               >
-                ×
+                <FaXmark aria-hidden="true" />
               </button>
             </div>
             <div className="play-scale-sheet-controls">
-              <button type="button" className="btn btn-ghost play-scale-sheet-step" onClick={() => nudgePlayScale(-5)}>
-                -
+              <button type="button" className="btn btn-ghost play-scale-sheet-step" onClick={() => nudgePlayScale(-5)} aria-label="縮小">
+                <FaMinus aria-hidden="true" />
               </button>
               <label className="slider-field play-scale-sheet-slider">
                 <span>
@@ -1759,8 +1774,8 @@ function PlayPage({ id }: { id: string }) {
                   onChange={(event) => setPlayScale(event.target.value)}
                 />
               </label>
-              <button type="button" className="btn btn-ghost play-scale-sheet-step" onClick={() => nudgePlayScale(5)}>
-                +
+              <button type="button" className="btn btn-ghost play-scale-sheet-step" onClick={() => nudgePlayScale(5)} aria-label="拡大">
+                <FaPlus aria-hidden="true" />
               </button>
             </div>
           </div>
