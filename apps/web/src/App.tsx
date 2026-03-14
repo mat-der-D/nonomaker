@@ -1305,6 +1305,7 @@ function PlayPage({ id }: { id: string }) {
   const [selectedCell, setSelectedCell] = useState({ row: 0, col: 0 });
   const [mobileAction, setMobileAction] = useState<PlayCell>("filled");
   const [mobileHeldAction, setMobileHeldAction] = useState<PlayCell | null>(null);
+  const [mobileHeldValue, setMobileHeldValue] = useState<PlayCell | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [mobileScaleMenuOpen, setMobileScaleMenuOpen] = useState(false);
 
@@ -1477,6 +1478,16 @@ function PlayPage({ id }: { id: string }) {
     return currentValue === nextValue ? "unknown" : nextValue;
   }
 
+  function resolveHeldPlayCell(currentValue: PlayCell, action: PlayCell) {
+    if (action === "filled") {
+      return currentValue === "filled" ? "unknown" : "filled";
+    }
+    if (action === "crossed") {
+      return currentValue === "crossed" ? "unknown" : "crossed";
+    }
+    return "unknown";
+  }
+
   function moveSelection(rowDelta: number, colDelta: number) {
     setSelectedCell((current) => {
       const nextRow = clampNumber(current.row + rowDelta, 0, playCells.length - 1);
@@ -1484,9 +1495,9 @@ function PlayPage({ id }: { id: string }) {
 
       if (nextRow !== current.row || nextCol !== current.col) {
         const currentValue = playCells[nextRow]?.[nextCol];
-        if (currentValue && mobileHeldAction && (mobileHeldAction === "filled" || mobileHeldAction === "crossed")) {
+        if (currentValue && mobileHeldAction && mobileHeldValue) {
           const nextPlayCells = playCells.map((cellRow) => [...cellRow]);
-          nextPlayCells[nextRow][nextCol] = resolveToggledPlayCell(currentValue, mobileHeldAction);
+          nextPlayCells[nextRow][nextCol] = mobileHeldValue;
           applyPlayCells(nextPlayCells);
         }
       }
@@ -1509,13 +1520,23 @@ function PlayPage({ id }: { id: string }) {
   }
 
   function handleMobileActionPress(action: PlayCell) {
+    const currentValue = playCells[selectedCell.row]?.[selectedCell.col];
+    if (!currentValue) {
+      return;
+    }
+    const nextHeldValue = resolveHeldPlayCell(currentValue, action);
     setMobileAction(action);
     setMobileHeldAction(action);
-    applyMobileAction(action);
+    setMobileHeldValue(nextHeldValue);
+
+    const nextPlayCells = playCells.map((cellRow) => [...cellRow]);
+    nextPlayCells[selectedCell.row][selectedCell.col] = nextHeldValue;
+    applyPlayCells(nextPlayCells);
   }
 
   function handleMobileActionRelease() {
     setMobileHeldAction(null);
+    setMobileHeldValue(null);
   }
 
   return (
