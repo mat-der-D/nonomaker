@@ -180,6 +180,7 @@ function MakerPage() {
       }
     }
     commit(next);
+    warnIfLargeGridForMobile(next);
   }
 
   async function runCheck() {
@@ -294,6 +295,7 @@ function MakerPage() {
 
     if (isGrid(parsed)) {
       commit(parsed);
+      warnIfLargeGridForMobile(parsed);
       return;
     }
 
@@ -310,6 +312,7 @@ function MakerPage() {
           throw new Error("読み込んだ問題は一意解ではありません。");
         }
         commit(solution.grids[0]);
+        warnIfLargeGridForMobile(solution.grids[0]);
         setAnalysis((current) => ({ ...current, message: "問題JSONを読み込みました。" }));
       } catch (error) {
         if (runId !== importRunRef.current) {
@@ -671,6 +674,7 @@ function MakerPage() {
           }}
           onApply={(next) => {
             commit(next);
+            warnIfLargeGridForMobile(next);
             setAnalysis((current) => ({
               ...current,
               message: "画像から作成した盤面を適用しました。",
@@ -1775,6 +1779,15 @@ function playModeStatusMessage(mobilePlayMode: boolean, wrongFilled: number | nu
 
 function clampNumber(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max);
+}
+
+function warnIfLargeGridForMobile(grid: Grid) {
+  const height = grid.length;
+  const width = grid[0]?.length ?? 0;
+  if (width <= 15 && height <= 15) {
+    return;
+  }
+  window.alert("15×15以上の盤面はスマホで操作しにくいことがあります。共有前に操作感を確認しておくと安心です。");
 }
 
 function playBoardStorageKey(id: string) {
