@@ -656,9 +656,12 @@ button { cursor: pointer; }
 
 .play-grid .cell {
   width: var(--board-cell-size, 32px);
+  height: var(--board-cell-size, 32px);
   min-width: var(--board-cell-size, 32px);
-  min-height: var(--board-cell-size, 32px);
-  font-size: 1rem;
+  min-height: 0;
+  padding: 0;
+  font-size: calc(var(--board-cell-size, 32px) * 0.6);
+  line-height: 1;
 }
 
 .play-grid .cell.play-cell-unknown {
