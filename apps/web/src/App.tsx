@@ -1631,19 +1631,47 @@ function PlayPage({ id }: { id: string }) {
               <div className="mobile-play-controls-compact">
                 <div className="mobile-play-pad" role="group" aria-label="move selection">
                   <div />
-                  <button type="button" className="btn btn-ghost mobile-play-pad-btn" onClick={() => moveSelection(-1, 0)}>
+                  <button
+                    type="button"
+                    className="btn btn-ghost mobile-play-pad-btn"
+                    onPointerDown={(event) => {
+                      event.preventDefault();
+                      moveSelection(-1, 0);
+                    }}
+                  >
                     <FaArrowUp aria-hidden="true" />
                   </button>
                   <div />
-                  <button type="button" className="btn btn-ghost mobile-play-pad-btn" onClick={() => moveSelection(0, -1)}>
+                  <button
+                    type="button"
+                    className="btn btn-ghost mobile-play-pad-btn"
+                    onPointerDown={(event) => {
+                      event.preventDefault();
+                      moveSelection(0, -1);
+                    }}
+                  >
                     <FaArrowLeft aria-hidden="true" />
                   </button>
                   <div className="mobile-play-pad-gap" />
-                  <button type="button" className="btn btn-ghost mobile-play-pad-btn" onClick={() => moveSelection(0, 1)}>
+                  <button
+                    type="button"
+                    className="btn btn-ghost mobile-play-pad-btn"
+                    onPointerDown={(event) => {
+                      event.preventDefault();
+                      moveSelection(0, 1);
+                    }}
+                  >
                     <FaArrowRight aria-hidden="true" />
                   </button>
                   <div />
-                  <button type="button" className="btn btn-ghost mobile-play-pad-btn" onClick={() => moveSelection(1, 0)}>
+                  <button
+                    type="button"
+                    className="btn btn-ghost mobile-play-pad-btn"
+                    onPointerDown={(event) => {
+                      event.preventDefault();
+                      moveSelection(1, 0);
+                    }}
+                  >
                     <FaArrowDown aria-hidden="true" />
                   </button>
                   <div />
