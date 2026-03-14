@@ -127,6 +127,16 @@ function MakerPage() {
     scrollLeft: number;
     scrollTop: number;
   } | null>(null);
+  const makerMobileAlertShownRef = useRef(false);
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia("(max-width: 900px), (pointer: coarse)");
+    if (!mediaQuery.matches || makerMobileAlertShownRef.current) {
+      return;
+    }
+    makerMobileAlertShownRef.current = true;
+    window.alert("現在の NonoMaker はスマートフォン操作に対応していません。盤面作成や編集は PC での利用をおすすめします。");
+  }, []);
 
   useEffect(() => {
     setSize({ width: grid[0]?.length ?? 0, height: grid.length });
