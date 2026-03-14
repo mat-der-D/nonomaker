@@ -1274,6 +1274,23 @@ function PlayPage({ id }: { id: string }) {
   const [playCells, setPlayCells] = useState<PlayCell[][] | null>(null);
   const [statusMessage, setStatusMessage] = useState("問題を読み込み中...");
   const [playScale, setPlayScale] = useState("100");
+  const [mobilePlayMode, setMobilePlayMode] = useState(false);
+  const [selectedCell, setSelectedCell] = useState({ row: 0, col: 0 });
+  const [mobileAction, setMobileAction] = useState<PlayCell>("filled");
+  const [mobileHeldAction, setMobileHeldAction] = useState<PlayCell | null>(null);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [mobileScaleMenuOpen, setMobileScaleMenuOpen] = useState(false);
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia("(max-width: 900px), (pointer: coarse)");
+    const syncMobilePlayMode = () => {
+      setMobilePlayMode(mediaQuery.matches);
+    };
+
+    syncMobilePlayMode();
+    mediaQuery.addEventListener("change", syncMobilePlayMode);
+    return () => mediaQuery.removeEventListener("change", syncMobilePlayMode);
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -1287,7 +1304,7 @@ function PlayPage({ id }: { id: string }) {
           setSolutionGrid(decodedSolutionGrid);
           setPuzzle(nextPuzzle);
           setPlayCells(savedPlayCells ?? createPlayGrid(width, height));
-          setStatusMessage("左クリックで入力、右クリックで反対の記号を置けます。");
+          setStatusMessage(playModeStatusMessage(mobilePlayMode, null));
         }
       } catch (error) {
         if (!cancelled) {
@@ -1298,7 +1315,19 @@ function PlayPage({ id }: { id: string }) {
     return () => {
       cancelled = true;
     };
-  }, [id]);
+  }, [id, mobilePlayMode]);
+
+  useEffect(() => {
+    setStatusMessage((current) =>
+      current === "問題を読み込み中..." || current === basePlayMessage(!mobilePlayMode)
+        ? basePlayMessage(mobilePlayMode)
+        : current,
+    );
+    if (!mobilePlayMode) {
+      setMobileMenuOpen(false);
+      setMobileScaleMenuOpen(false);
+    }
+  }, [mobilePlayMode]);
 
   useEffect(() => {
     if (!playCells) {
@@ -1311,15 +1340,97 @@ function PlayPage({ id }: { id: string }) {
     }
   }, [id, playCells]);
 
+  useEffect(() => {
+    if (!playCells) {
+      return;
+    }
+    const maxRow = playCells.length - 1;
+    const maxCol = (playCells[0]?.length ?? 1) - 1;
+    setSelectedCell((current) => ({
+      row: Math.min(current.row, maxRow),
+      col: Math.min(current.col, maxCol),
+    }));
+  }, [playCells]);
+
+  useEffect(() => {
+    if (!mobilePlayMode || !playCells) {
+      return;
+    }
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (
+        event.target instanceof HTMLElement &&
+        (event.target.tagName === "INPUT" || event.target.tagName === "TEXTAREA" || event.target.isContentEditable)
+      ) {
+        return;
+      }
+
+      if (event.key === "ArrowUp") {
+        event.preventDefault();
+        moveSelection(-1, 0);
+        return;
+      }
+      if (event.key === "ArrowDown") {
+        event.preventDefault();
+        moveSelection(1, 0);
+        return;
+      }
+      if (event.key === "ArrowLeft") {
+        event.preventDefault();
+        moveSelection(0, -1);
+        return;
+      }
+      if (event.key === "ArrowRight") {
+        event.preventDefault();
+        moveSelection(0, 1);
+        return;
+      }
+      if (event.key === " " || event.key === "Enter") {
+        event.preventDefault();
+        applyMobileAction(mobileAction);
+        return;
+      }
+      if (event.key.toLowerCase() === "x") {
+        event.preventDefault();
+        applyMobileAction("crossed");
+        return;
+      }
+      if (event.key.toLowerCase() === "f") {
+        event.preventDefault();
+        applyMobileAction("filled");
+        return;
+      }
+      if (event.key === "Backspace" || event.key === "Delete" || event.key === "0") {
+        event.preventDefault();
+        applyMobileAction("unknown");
+      }
+    }
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [mobileAction, mobilePlayMode, playCells, selectedCell, solutionGrid]);
+
   if (!puzzle || !playCells || !solutionGrid) {
     return <div className="screen-state">{statusMessage}</div>;
   }
 
   const playStats = computePlayStats(playCells, solutionGrid);
   const playScaleValue = clampCanvasScale(playScale);
-  const boardCellSize = Math.max(10, Math.round((24 * playScaleValue) / 100));
+  const baseCellSize = mobilePlayMode ? 18 : 24;
+  const boardCellSize = Math.max(mobilePlayMode ? 8 : 10, Math.round((baseCellSize * playScaleValue) / 100));
   const progressRatio =
     playStats.targetFilled === 0 ? 100 : Math.round((playStats.correctFilled / playStats.targetFilled) * 100);
+
+  function applyPlayCells(nextPlayCells: PlayCell[][]) {
+    setPlayCells(nextPlayCells);
+    if (solvedBoard(nextPlayCells, solutionGrid)) {
+      setStatusMessage("完成です。");
+      return;
+    }
+
+    const nextPlayStats = computePlayStats(nextPlayCells, solutionGrid);
+    setStatusMessage(playModeStatusMessage(mobilePlayMode, nextPlayStats.wrongFilled));
+  }
 
   function nudgePlayScale(delta: number) {
     setPlayScale(String(clampCanvasScale(String(playScaleValue + delta))));
@@ -1332,18 +1443,52 @@ function PlayPage({ id }: { id: string }) {
   }
 
   function handlePlayCellsChange(nextPlayCells: PlayCell[][]) {
-    setPlayCells(nextPlayCells);
-    if (solvedBoard(nextPlayCells, solutionGrid)) {
-      setStatusMessage("完成です。");
+    applyPlayCells(nextPlayCells);
+  }
+
+  function resolveToggledPlayCell(currentValue: PlayCell, nextValue: PlayCell) {
+    return currentValue === nextValue ? "unknown" : nextValue;
+  }
+
+  function moveSelection(rowDelta: number, colDelta: number) {
+    setSelectedCell((current) => {
+      const nextRow = clampNumber(current.row + rowDelta, 0, playCells.length - 1);
+      const nextCol = clampNumber(current.col + colDelta, 0, (playCells[0]?.length ?? 1) - 1);
+
+      if (nextRow !== current.row || nextCol !== current.col) {
+        const currentValue = playCells[nextRow]?.[nextCol];
+        if (currentValue && mobileHeldAction && (mobileHeldAction === "filled" || mobileHeldAction === "crossed")) {
+          const nextPlayCells = playCells.map((cellRow) => [...cellRow]);
+          nextPlayCells[nextRow][nextCol] = resolveToggledPlayCell(currentValue, mobileHeldAction);
+          applyPlayCells(nextPlayCells);
+        }
+      }
+
+      return {
+        row: nextRow,
+        col: nextCol,
+      };
+    });
+  }
+
+  function applyMobileAction(nextValue: PlayCell) {
+    const currentValue = playCells[selectedCell.row]?.[selectedCell.col];
+    if (!currentValue) {
       return;
     }
+    const nextPlayCells = playCells.map((cellRow) => [...cellRow]);
+    nextPlayCells[selectedCell.row][selectedCell.col] = resolveToggledPlayCell(currentValue, nextValue);
+    applyPlayCells(nextPlayCells);
+  }
 
-    const nextPlayStats = computePlayStats(nextPlayCells, solutionGrid);
-    if (nextPlayStats.wrongFilled > 0) {
-      setStatusMessage(`誤って塗っているマスが ${nextPlayStats.wrongFilled} 個あります。`);
-    } else {
-      setStatusMessage("左クリックで入力、右クリックで反対の記号を置けます。");
-    }
+  function handleMobileActionPress(action: PlayCell) {
+    setMobileAction(action);
+    setMobileHeldAction(action);
+    applyMobileAction(action);
+  }
+
+  function handleMobileActionRelease() {
+    setMobileHeldAction(null);
   }
 
   return (
@@ -1353,10 +1498,81 @@ function PlayPage({ id }: { id: string }) {
           <p className="eyebrow">Solve from shared URL</p>
           <h1>Nono<span>Maker</span> Play</h1>
         </div>
-        <a className="ghost-link" href="/maker">
-          ← maker に戻る
-        </a>
+        {mobilePlayMode ? (
+          <button
+            type="button"
+            className="btn btn-ghost play-menu-button"
+            onClick={() => setMobileMenuOpen(true)}
+            aria-label="メニューを開く"
+            aria-expanded={mobileMenuOpen}
+          >
+            ☰
+          </button>
+        ) : (
+          <a className="ghost-link" href="/maker">
+            ← maker に戻る
+          </a>
+        )}
       </header>
+      {mobilePlayMode && mobileMenuOpen ? (
+        <div className="play-mobile-menu-backdrop" onClick={() => setMobileMenuOpen(false)}>
+          <aside
+            className="play-mobile-menu"
+            onClick={(event) => event.stopPropagation()}
+            aria-label="play menu"
+          >
+            <div className="play-mobile-menu-header">
+              <h2>Menu</h2>
+              <button
+                type="button"
+                className="btn btn-ghost play-menu-close"
+                onClick={() => setMobileMenuOpen(false)}
+                aria-label="メニューを閉じる"
+              >
+                ×
+              </button>
+            </div>
+            <p>{statusMessage}</p>
+            <a className="ghost-link play-mobile-maker-link" href="/maker">
+              ← maker に戻る
+            </a>
+            <div className="play-stats">
+              <div className="play-stat">
+                <span>進捗</span>
+                <strong>{progressRatio}%</strong>
+              </div>
+              <div className="ratio-bar-track">
+                <div className="ratio-bar-fill" style={{ width: `${progressRatio}%` }} />
+              </div>
+              <div className="play-stat">
+                <span>正しく塗れたマス</span>
+                <strong>
+                  {playStats.correctFilled} / {playStats.targetFilled}
+                </strong>
+              </div>
+              <div className="play-stat">
+                <span>誤って塗ったマス</span>
+                <strong>{playStats.wrongFilled}</strong>
+              </div>
+              <div className="play-stat">
+                <span>× を置いたマス</span>
+                <strong>{playStats.crossed}</strong>
+              </div>
+            </div>
+            <p className="play-hint">セルをタップして選択し、十字キーで移動します。右側のボタンで塗りと × を入力できます。</p>
+            <button type="button" className="btn btn-subtle" onClick={() => navigator.clipboard.writeText(window.location.href)}>
+              📋 URL をコピー
+            </button>
+            <button
+              type="button"
+              className="btn btn-ghost play-reset-button"
+              onClick={() => window.confirm("盤面をリセットしますか？") && resetBoard()}
+            >
+              リセット
+            </button>
+          </aside>
+        </div>
+      ) : null}
       <section className="play-layout">
         <div className="play-main">
           <div className="editor-panel play-board-panel">
@@ -1365,76 +1581,200 @@ function PlayPage({ id }: { id: string }) {
               cells={playCells}
               cellSize={boardCellSize}
               onCellsChange={handlePlayCellsChange}
+              interactionMode={mobilePlayMode ? "cursor" : "classic"}
+              selectedCell={mobilePlayMode ? selectedCell : null}
+              onSelectedCellChange={mobilePlayMode ? setSelectedCell : undefined}
             />
+            {mobilePlayMode ? (
+              <button
+                type="button"
+                className="btn btn-subtle play-scale-fab"
+                onClick={() => setMobileScaleMenuOpen(true)}
+                aria-label="拡大縮小メニューを開く"
+              >
+                ⤢
+              </button>
+            ) : null}
           </div>
         </div>
         <div className="card play-sidebar">
           <h2>Play</h2>
-          <p>{statusMessage}</p>
-          <button
-            type="button"
-            className="btn btn-ghost play-reset-button"
-            onClick={() => window.confirm("盤面をリセットしますか？") && resetBoard()}
-          >
-            リセット
-          </button>
-          <div className="play-stats">
-            <div className="play-scale-control">
-              <label className="number-field">
-                <span>表示倍率</span>
+          {mobilePlayMode ? (
+            <>
+              <div className="mobile-play-controls-compact">
+                <div className="mobile-play-pad" role="group" aria-label="move selection">
+                  <div />
+                  <button type="button" className="btn btn-ghost mobile-play-pad-btn" onClick={() => moveSelection(-1, 0)}>
+                    ↑
+                  </button>
+                  <div />
+                  <button type="button" className="btn btn-ghost mobile-play-pad-btn" onClick={() => moveSelection(0, -1)}>
+                    ←
+                  </button>
+                  <div className="mobile-play-pad-gap" />
+                  <button type="button" className="btn btn-ghost mobile-play-pad-btn" onClick={() => moveSelection(0, 1)}>
+                    →
+                  </button>
+                  <div />
+                  <button type="button" className="btn btn-ghost mobile-play-pad-btn" onClick={() => moveSelection(1, 0)}>
+                    ↓
+                  </button>
+                  <div />
+                </div>
+                <div className="mobile-play-action-stack" role="toolbar" aria-label="play actions">
+                  <button
+                    type="button"
+                    className={`btn mobile-play-action-btn ${mobileHeldAction === "filled" ? "btn-primary" : "btn-subtle"}`}
+                    onPointerDown={() => handleMobileActionPress("filled")}
+                    onPointerUp={handleMobileActionRelease}
+                    onPointerCancel={handleMobileActionRelease}
+                    onPointerLeave={handleMobileActionRelease}
+                    aria-label="塗る"
+                  >
+                    <span className="mobile-play-action-icon mobile-play-action-icon-fill" aria-hidden="true" />
+                  </button>
+                  <button
+                    type="button"
+                    className={`btn mobile-play-action-btn ${mobileHeldAction === "crossed" ? "btn-primary" : "btn-subtle"}`}
+                    onPointerDown={() => handleMobileActionPress("crossed")}
+                    onPointerUp={handleMobileActionRelease}
+                    onPointerCancel={handleMobileActionRelease}
+                    onPointerLeave={handleMobileActionRelease}
+                    aria-label="× を置く"
+                  >
+                    <span className="mobile-play-action-icon mobile-play-action-icon-cross" aria-hidden="true">
+                      ×
+                    </span>
+                  </button>
+                </div>
+              </div>
+            </>
+          ) : null}
+          {!mobilePlayMode ? (
+            <>
+              <p>{statusMessage}</p>
+              <button
+                type="button"
+                className="btn btn-ghost play-reset-button"
+                onClick={() => window.confirm("盤面をリセットしますか？") && resetBoard()}
+              >
+                リセット
+              </button>
+              <div className="play-stats">
+                <div className="play-scale-control">
+                  <label className="number-field">
+                    <span>表示倍率</span>
+                    <input
+                      type="number"
+                      min={50}
+                      max={300}
+                      step={5}
+                      value={playScale}
+                      onChange={(event) => setPlayScale(event.target.value)}
+                      onBlur={() => setPlayScale(String(playScaleValue))}
+                    />
+                  </label>
+                  <div className="play-scale-buttons">
+                    <button type="button" className="btn btn-ghost play-scale-btn" onClick={() => nudgePlayScale(5)}>
+                      +
+                    </button>
+                    <button type="button" className="btn btn-ghost play-scale-btn" onClick={() => nudgePlayScale(-5)}>
+                      -
+                    </button>
+                  </div>
+                </div>
+                <div className="play-stat">
+                  <span>進捗</span>
+                  <strong>{progressRatio}%</strong>
+                </div>
+                <div className="ratio-bar-track">
+                  <div className="ratio-bar-fill" style={{ width: `${progressRatio}%` }} />
+                </div>
+                <div className="play-stat">
+                  <span>正しく塗れたマス</span>
+                  <strong>
+                    {playStats.correctFilled} / {playStats.targetFilled}
+                  </strong>
+                </div>
+                <div className="play-stat">
+                  <span>誤って塗ったマス</span>
+                  <strong>{playStats.wrongFilled}</strong>
+                </div>
+                <div className="play-stat">
+                  <span>× を置いたマス</span>
+                  <strong>{playStats.crossed}</strong>
+                </div>
+              </div>
+              <p className="play-hint">左クリックで塗り、右クリックで ×。同じ状態をもう一度入力すると Blank に戻ります。</p>
+              <button type="button" className="btn btn-subtle" onClick={() => navigator.clipboard.writeText(window.location.href)}>
+                📋 URL をコピー
+              </button>
+            </>
+          ) : null}
+        </div>
+      </section>
+      {mobilePlayMode && mobileScaleMenuOpen ? (
+        <div className="play-scale-sheet-backdrop" onClick={() => setMobileScaleMenuOpen(false)}>
+          <div className="play-scale-sheet" onClick={(event) => event.stopPropagation()}>
+            <div className="play-scale-sheet-header">
+              <h2>Zoom</h2>
+              <button
+                type="button"
+                className="btn btn-ghost play-scale-sheet-close"
+                onClick={() => setMobileScaleMenuOpen(false)}
+                aria-label="拡大縮小メニューを閉じる"
+              >
+                ×
+              </button>
+            </div>
+            <div className="play-scale-sheet-controls">
+              <button type="button" className="btn btn-ghost play-scale-sheet-step" onClick={() => nudgePlayScale(-5)}>
+                -
+              </button>
+              <label className="slider-field play-scale-sheet-slider">
+                <span>
+                  <span>表示倍率</span>
+                  <strong>{playScaleValue}%</strong>
+                </span>
                 <input
-                  type="number"
+                  type="range"
                   min={50}
                   max={300}
                   step={5}
-                  value={playScale}
+                  value={playScaleValue}
                   onChange={(event) => setPlayScale(event.target.value)}
-                  onBlur={() => setPlayScale(String(playScaleValue))}
                 />
               </label>
-              <div className="play-scale-buttons">
-                <button type="button" className="btn btn-ghost play-scale-btn" onClick={() => nudgePlayScale(5)}>
-                  +
-                </button>
-                <button type="button" className="btn btn-ghost play-scale-btn" onClick={() => nudgePlayScale(-5)}>
-                  -
-                </button>
-              </div>
-            </div>
-            <div className="play-stat">
-              <span>進捗</span>
-              <strong>{progressRatio}%</strong>
-            </div>
-            <div className="ratio-bar-track">
-              <div className="ratio-bar-fill" style={{ width: `${progressRatio}%` }} />
-            </div>
-            <div className="play-stat">
-              <span>正しく塗れたマス</span>
-              <strong>
-                {playStats.correctFilled} / {playStats.targetFilled}
-              </strong>
-            </div>
-            <div className="play-stat">
-              <span>誤って塗ったマス</span>
-              <strong>{playStats.wrongFilled}</strong>
-            </div>
-            <div className="play-stat">
-              <span>× を置いたマス</span>
-              <strong>{playStats.crossed}</strong>
+              <button type="button" className="btn btn-ghost play-scale-sheet-step" onClick={() => nudgePlayScale(5)}>
+                +
+              </button>
             </div>
           </div>
-          <p className="play-hint">左クリックで塗り、右クリックで ×。同じ状態をもう一度入力すると Blank に戻ります。</p>
-          <button type="button" className="btn btn-subtle" onClick={() => navigator.clipboard.writeText(window.location.href)}>
-            📋 URL をコピー
-          </button>
         </div>
-      </section>
+      ) : null}
     </div>
   );
 }
 
 function createPlayGrid(width: number, height: number): PlayCell[][] {
   return Array.from({ length: height }, () => Array.from({ length: width }, () => "unknown"));
+}
+
+function basePlayMessage(mobilePlayMode: boolean) {
+  return mobilePlayMode
+    ? "セルを選択して、十字キーと 塗り / × で入力できます。"
+    : "左クリックで入力、右クリックで反対の記号を置けます。";
+}
+
+function playModeStatusMessage(mobilePlayMode: boolean, wrongFilled: number | null) {
+  if (wrongFilled && wrongFilled > 0) {
+    return `誤って塗っているマスが ${wrongFilled} 個あります。`;
+  }
+  return basePlayMessage(mobilePlayMode);
+}
+
+function clampNumber(value: number, min: number, max: number) {
+  return Math.min(Math.max(value, min), max);
 }
 
 function playBoardStorageKey(id: string) {

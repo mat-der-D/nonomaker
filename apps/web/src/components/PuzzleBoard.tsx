@@ -1,14 +1,18 @@
-import { useEffect, useMemo, useState, type CSSProperties } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import type { Puzzle } from "../wasm/types";
 import { maxClueDepth } from "../utils/grid";
 
 export type PlayCell = "unknown" | "filled" | "crossed";
+export type BoardInteractionMode = "classic" | "cursor";
 
 interface PuzzleBoardProps {
   puzzle: Puzzle;
   cells: PlayCell[][];
   onCellsChange: (cells: PlayCell[][]) => void;
   cellSize?: number;
+  interactionMode?: BoardInteractionMode;
+  selectedCell?: { row: number; col: number } | null;
+  onSelectedCellChange?: (cell: { row: number; col: number }) => void;
 }
 
 export function PuzzleBoard({
@@ -16,12 +20,16 @@ export function PuzzleBoard({
   cells,
   onCellsChange,
   cellSize = 32,
+  interactionMode = "classic",
+  selectedCell = null,
+  onSelectedCellChange,
 }: PuzzleBoardProps) {
   const { maxRowClueSlots, maxColClueSlots } = maxClueDepth(puzzle);
   const boardCellSize = cellSize;
   const rowClueAreaWidth = maxRowClueSlots * boardCellSize + 4;
   const colClueAreaHeight = maxColClueSlots * boardCellSize + 4;
   const boardAreaWidth = puzzle.col_clues.length * boardCellSize + 4;
+  const selectedCellRef = useRef<HTMLButtonElement | null>(null);
   const [activeDrag, setActiveDrag] = useState<{
     active: boolean;
     value: PlayCell;
@@ -38,6 +46,16 @@ export function PuzzleBoard({
     window.addEventListener("pointerup", stopActiveDrag);
     return () => window.removeEventListener("pointerup", stopActiveDrag);
   }, []);
+
+  useEffect(() => {
+    if (interactionMode !== "cursor" || !selectedCellRef.current) {
+      return;
+    }
+    selectedCellRef.current.scrollIntoView({
+      block: "nearest",
+      inline: "nearest",
+    });
+  }, [interactionMode, selectedCell]);
 
   const solvedRows = useMemo(
     () => cells.map((cellRow, rowIndex) => equalClues(computeClues(cellRow), puzzle.row_clues[rowIndex])),
@@ -68,7 +86,7 @@ export function PuzzleBoard({
   }
 
   return (
-    <div className="puzzle-board-viewport">
+    <div className={`puzzle-board-viewport ${interactionMode === "cursor" ? "cursor-mode" : ""}`}>
       <div
         className="puzzle-board"
         style={{
@@ -153,17 +171,32 @@ export function PuzzleBoard({
                 className={[
                   "cell",
                   `play-cell-${cellValue}`,
+                  interactionMode === "cursor" && selectedCell?.row === cellRowIndex && selectedCell?.col === cellColumnIndex
+                    ? "play-cell-selected"
+                    : "",
                   cellRowIndex > 0 && cellRowIndex % 5 === 0 ? "major-top" : "",
                   cellColumnIndex > 0 && cellColumnIndex % 5 === 0 ? "major-left" : "",
                 ]
                   .filter(Boolean)
                   .join(" ")}
+                ref={
+                  interactionMode === "cursor" && selectedCell?.row === cellRowIndex && selectedCell?.col === cellColumnIndex
+                    ? selectedCellRef
+                    : null
+                }
                 onPointerDown={(event) => {
+                  if (interactionMode === "cursor") {
+                    onSelectedCellChange?.({ row: cellRowIndex, col: cellColumnIndex });
+                    return;
+                  }
                   const nextCellValue = resolveNextPlayCell(cellValue, event.button === 2);
                   setActiveDrag({ active: true, value: nextCellValue });
                   overwriteCell(cellRowIndex, cellColumnIndex, nextCellValue);
                 }}
                 onPointerEnter={() => {
+                  if (interactionMode === "cursor") {
+                    return;
+                  }
                   if (!activeDrag.active) {
                     return;
                   }
